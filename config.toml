@@ -51,9 +51,9 @@ disqusShortname = ""
       name = "projects"
       url = "projects"
 
-  #  [[params.navigation.links]]
-   #   name = "Generic Blog"
-    #  url = "blogs/ipsum"
+   [[params.navigation.links]]
+      name = "Generic Blog"
+      url = "blogs/ipsum"
 
     #[[params.navigation.links]]
      # name = "Elements"
@@ -98,10 +98,10 @@ disqusShortname = ""
       url = "projects/IBM HR Analytics"
 
     [[params.tiles.showcase]]
-      title = "Tempus"
-      subtitle = "Feugiat Amet Tempus"
-      image = "pic02.jpg"
-      url = "blogs/tempus"
+      title = "IMDB ratings: Differences between directors"
+      subtitle = "Difference between Directors"
+      image = "imdb.png"
+      url = "blogs/imdb_rat"
 
     [[params.tiles.showcase]]
       title = "Magna"

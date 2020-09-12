@@ -6,10 +6,19 @@
     <description>Recent content on Portfolio website for Himanshu Singh</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 31 Oct 2017 22:42:51 -0500</lastBuildDate>
+    <lastBuildDate>Sat, 12 Sep 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>IBM HR Analytics</title>
+      <link>/projects/ibm-hr-analytics/index/</link>
+      <pubDate>Sat, 12 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/projects/ibm-hr-analytics/index/</guid>
+      <description>knitr::opts_chunk$set(message = FALSE, warning = FALSE, tidy=FALSE, # display code as typedsize=&amp;quot;small&amp;quot;) # slightly I font for codeoptions(digits = 3)# default figure sizeknitr::opts_chunk$set(fig.width=6.75, fig.height=6.75,fig.align = &amp;quot;center&amp;quot;)IBM HR Analytics Dataset: An IntroI will analyse a data set on Human Resoruce Analytics. The IBM HR Analytics Employee Attrition &amp;amp; Performance data set is a fictional data set created by IBM data scientists.</description>
+    </item>
     
     <item>
       <title>Aliquam</title>
@@ -36,6 +45,27 @@
       
       <guid>/blogs/magna/</guid>
       <description></description>
+    </item>
+    
+    <item>
+      <title>blog6</title>
+      <link>/blogs/blog6/</link>
+      <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
+      
+      <guid>/blogs/blog6/</guid>
+      <description>R MarkdownThis is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see http://rmarkdown.rstudio.com.
+When you click the Knit button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:</description>
+    </item>
+    
+    <item>
+      <title>IMDB ratings: Differences between directors</title>
+      <link>/blogs/imdb_rat/</link>
+      <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
+      
+      <guid>/blogs/imdb_rat/</guid>
+      <description>IMDB Ratings: A primerINSERT some details about the dataset
+The DataHere is the dataset we will be working with. We can use glimpse to get a brief overview of the data.
+#contents of the movies dataset glimpse(movies)## Rows: 2,961## Columns: 11## $ title &amp;lt;chr&amp;gt; &amp;quot;Avatar&amp;quot;, &amp;quot;Titanic&amp;quot;, &amp;quot;Jurassic World&amp;quot;, &amp;quot;The Ave...## $ genre &amp;lt;chr&amp;gt; &amp;quot;Action&amp;quot;, &amp;quot;Drama&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;...## $ director &amp;lt;chr&amp;gt; &amp;quot;James Cameron&amp;quot;, &amp;quot;James Cameron&amp;quot;, &amp;quot;Colin Trevor.</description>
     </item>
     
     <item>
