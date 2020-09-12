@@ -54,21 +54,26 @@ First lets look at the distribution of the gross.</p>
 <pre class="r"><code>options(scipen  = 999)
 movies %&gt;%
   ggplot() + 
-  geom_histogram(aes(gross), fill = &#39;white&#39; , size = 1.3) +
-  labs(x = &#39;Box Office Gross USD&#39;,
-       y = &#39;Count&#39;,
+  geom_histogram(aes(gross/1000000), fill = &#39;white&#39; , size = 1.3) +
+  labs(x = &#39;\nBox Office Gross  mn USD&#39;,
+       y = &#39;Count\n&#39;,
        title = &#39;Most moviees are average!&#39; ,
-       subtitle = &#39;Distribution of Box Office Gross&#39;) +
+       subtitle = &#39;Distribution of Box Office Gross\n&#39;) +
   scale_colour_solarized(&quot;blue&quot;)+
+  scale_x_continuous(expand = c(0,0))+
+    scale_y_continuous(expand = c(0,0))+
   theme(
-        plot.background = element_rect(fill = &#39;#2B304A&#39;,),
-        axis.title = element_text(color = &#39;#C7C8CF&#39; , face = &#39;bold&#39;), 
+        plot.background = element_rect(fill = &#39;#2B304A&#39;, colour =&#39;#2B304A&#39; ),
+        axis.title = element_text(color = &#39;#C7C8CF&#39; , face = &#39;bold&#39; , margin(r = 20)), 
         axis.text =  element_text(color = &#39;#C7C8CF&#39; , face = &#39;bold&#39;) ,
         panel.grid = element_blank() ,
         panel.border = element_blank(),
         plot.title = element_text(color = &#39;#C7C8CF&#39; , face = &#39;bold&#39;),
         plot.subtitle = element_text(color = &#39;#C7C8CF&#39; , face = &#39;bold&#39;),
-        panel.background = element_rect(fill = &#39;#2B304A&#39;, color = &#39;#2B304A&#39;) 
+        panel.background = element_rect(fill = &#39;#2B304A&#39;, color = &#39;#2B304A&#39;) ,
+        axis.ticks = element_line(color = &#39;#C7C8CF&#39;),
+
+        
         
         )</code></pre>
 <p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-3-1.png" width="1056" style="display: block; margin: auto;" /></p>
