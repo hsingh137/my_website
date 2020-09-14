@@ -88,21 +88,38 @@ As we can see the `movies` is a tibble with 2,961 rows and 11 columnswhere each 
 In our dataset we have over 2,961 movies with box office gross ranging from  `r max(movies$gross)` USD to `r min(movies$gross)` USD. Let's try to understand, from the datal, we traits to high grossing movies share. 
 First lets look at the distribution of the gross. 
 
-```{r }
+```{r,}
 options(scipen  = 999)
 movies %>%
   ggplot() + 
-  geom_histogram(aes(gross/1000000), fill = 'white' , size = 1.3) +
+  geom_histogram(aes(gross/1000000), fill = '#EA8272' , size = 1.3) +
+  
+  #adding mean line and label
+  geom_vline(aes(xintercept = mean(gross/1000000)), color = '#F9F871' , size = 2,
+                          linetype = 'dotted')+ 
+  geom_text(aes(x = mean(gross/1000000)+15 , y =600,label = 'mean'),
+                                              angle=-90,color = '#C7C8CF')+
+            
+  #adding median line and label 
+                                                  
+   geom_vline(aes(xintercept = median(gross/1000000)), color = '#F9F871' , size = 2,
+             linetype = 'dotted')+ 
+  geom_text(aes(x = median(gross/1000000)+15 , y =600,label = 'median'),
+                                              angle=-90, 
+                                                  color = '#C7C8CF' ,)+
+  
+  #adding titles and other theme componenets 
   labs(x = '\nBox Office Gross  mn USD',
        y = 'Count\n',
-       title = 'Most moviees are average!' ,
+       title = 'Hollywood relies on the few big ones.' ,
        subtitle = 'Distribution of Box Office Gross\n') +
   scale_colour_solarized("blue")+
   scale_x_continuous(expand = c(0,0))+
     scale_y_continuous(expand = c(0,0))+
+  #matching the graph to the theme
   theme(
         plot.background = element_rect(fill = '#2B304A', colour ='#2B304A' ),
-        axis.title = element_text(color = '#C7C8CF' , face = 'bold' , margin(r = 20)), 
+        axis.title = element_text(color = '#C7C8CF' , face = 'bold' ), 
         axis.text =  element_text(color = '#C7C8CF' , face = 'bold') ,
         panel.grid = element_blank() ,
         panel.border = element_blank(),
@@ -116,12 +133,134 @@ movies %>%
         )
 ```
 
+We get a highly right skewed distribution with very few movies making more than 200mn and average movie, in terms of both median and mean, making below even 100mn. So why do some movies make so much more than others?
 
-Everyone has their own favorite genre of movie and debate In our dataset we have `r length(unique(movies$genre))` genres,
+We all know the saying that to make you need to spend money, let's see if that applies to the movie industry. We can plot the box office budget with the gross to see if there is any correlation.
 
 ```{r}
-#list the gneres in
+
+#calculating correlation 
+corr <-
+  cor(movies$gross,movies$budget)
+
+#scatter plot of gross vs box office 
+movies %>%
+  ggplot()+
+  geom_point(aes(x = budget/1e6 , y= gross/1e6 ) , color= '#EA8272')+
+  #adding line 
+  geom_smooth(aes(x = budget/1e6 , y= gross/1e6 ), method = 'lm' ,color = '#F9F871' ) +
+
+  
+   #adding titles and other theme componenets 
+  labs(y = 'Box Office Gross  mn USD \n',
+       x = '\n Movie Budget  mn USD',
+       title = ' ' ,
+       subtitle = ' Box Office Gross\n vs Budget') +
+  scale_colour_solarized("blue")+
+  scale_x_continuous(expand = c(0,0))+
+  scale_y_continuous(expand = c(0,0))+
+  #matching the graph to the theme
+  theme(
+        plot.background = element_rect(fill = '#2B304A', colour ='#2B304A' ),
+        axis.title = element_text(color = '#C7C8CF' , face = 'bold' ), 
+        axis.text =  element_text(color = '#C7C8CF' , face = 'bold') ,
+       
+        panel.grid = element_blank() ,
+        panel.border = element_blank(),
+        plot.title = element_text(color = '#C7C8CF' , face = 'bold'),
+        plot.subtitle = element_text(color = '#C7C8CF' , face = 'bold'),
+        panel.background = element_rect(fill = '#2B304A', color = '#2B304A') ,
+        axis.ticks = element_line(color = '#C7C8CF'),
+)+
+  
+  ##adding correlation 
+    geom_text(aes(x = max(budget/1e6)-50 , y =100),label = paste0('Correlation: ' , round(corr,2)),
+    color = '#C7C8CF' ,)
+
+``` 
+
+Although not strong we do see some positive correlation between budget and box office returns. But to get get a clearer picture let's divide the budget into three categories: high, low, and medium and see which category has those big blockbusters.
+
+```{r}
+
+#defining three catergoes
+#low is <50 medium is 51-150 and high is 150+
+
+movies %>% 
+  mutate(budget_cat = case_when(
+    budget < 5e7 ~ 'Low',
+    budget >= 5e7 & budget < 1.5e8 ~ 'Medium' ,
+    budget >= 1.5e8 ~ 'High'
+    
+  )) %>%
+  ggplot(aes(x = budget_cat , y= gross/1e6)) +
+  geom_boxplot( color =  '#F9F871'  , fill =  '#EA8272') + 
+  
+    #adding titles and other theme componenets 
+  labs(y = 'Box Office Gross  mn USD \n',
+       x = '\n Movie Budget  Category',
+       title = ' ' ,
+       subtitle = ' Box Office Gross\n vs Budget') +
+  scale_colour_solarized("blue")+
+  scale_x_discrete(expand = c(0,0))+
+  scale_y_continuous(expand = c(0,0))+
+  #matching the graph to the theme
+  theme(
+        plot.background = element_rect(fill = '#2B304A', colour ='#2B304A' ),
+        axis.title = element_text(color = '#C7C8CF' , face = 'bold' ), 
+        axis.text =  element_text(color = '#C7C8CF' , face = 'bold') ,
+        panel.grid = element_blank() ,
+        panel.border = element_blank(),
+        plot.title = element_text(color = '#C7C8CF' , face = 'bold'),
+        plot.subtitle = element_text(color = '#C7C8CF' , face = 'bold'),
+        panel.background = element_rect(fill = '#2B304A', color = '#2B304A') ,
+        axis.ticks = element_line(color = '#C7C8CF'),
+)
+  
+  
+```
+We see that the distribution of box office gross significantly varies between the low and high budget categories,so this indicates that spending money on making your movie lets you make those extra dollars at the box office. However, another metric, potentially a more important one, is actually looking at the return on investment, so lets create a variable called `roi` defined as % return on the budget. 
+
+```{r}
+
+movies %>% 
+  mutate(roi = round(((gross - budget)/budget)*100 , 2)) %>%
+  mutate(budget_cat = case_when(
+    budget < 5e7 ~ 'Low',
+    budget >= 5e7 & budget < 1.5e8 ~ 'Medium' ,
+    budget >= 1.5e8 ~ 'High'
+    
+  ))%>%
+   ggplot(aes( x = budget_cat , y= roi)) +
+  geom_boxplot( color =  '#F9F871'  , fill =  '#EA8272') + 
+  
+    #adding titles and other theme componenets 
+  labs(y = 'ROI(%) \n',
+       x = '\n Movie Budget  Category',
+       title = ' ' ,
+       subtitle = ' Box Office ROI \n vs Budget Category') +
+  scale_colour_solarized("blue")+
+  scale_x_discrete(expand = c(0,0))+
+  #limiting the y axis to avoid shrinking y axis due to out liers
+  scale_y_continuous(expand = c(0,0) , limits = c(0,400))+
+  #matching the graph to the theme
+  theme(
+        plot.background = element_rect(fill = '#2B304A', colour ='#2B304A' ),
+        axis.title = element_text(color = '#C7C8CF' , face = 'bold' ), 
+        axis.text =  element_text(color = '#C7C8CF' , face = 'bold') ,
+        panel.grid = element_blank() ,
+        panel.border = element_blank(),
+        plot.title = element_text(color = '#C7C8CF' , face = 'bold'),
+        plot.subtitle = element_text(color = '#C7C8CF' , face = 'bold'),
+        panel.background = element_rect(fill = '#2B304A', color = '#2B304A') ,
+        axis.ticks = element_line(color = '#C7C8CF'),
+)
+  
+  
+
 ```
 
+
+Now we see that the picture changes completely and the high budget movies don't see me to be as lucrative any more. The mean ROI of the low budget category is not the highest but there still seems to significant overlap between the high and low budget categories. 
 
 
