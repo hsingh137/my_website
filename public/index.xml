@@ -48,14 +48,23 @@
     </item>
     
     <item>
-      <title>IMDB ratings: Differences between directors</title>
+      <title>AirBnB: Using Machine Learning to Predict Prices in Singapore</title>
+      <link>/blogs/airbnb/</link>
+      <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
+      
+      <guid>/blogs/airbnb/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>IMDB: What makes a high grossing movie</title>
       <link>/blogs/imdb_rat/</link>
       <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
       
       <guid>/blogs/imdb_rat/</guid>
-      <description>IMDB Ratings: A primerINSERT some details about the dataset
+      <description>IMDBIn this post I will be exploring the IMDB dataset to see what
 The DataHere is the dataset we will be working with. We can use glimpse to get a brief overview of the data.
-#contents of the movies dataset glimpse(movies)## Rows: 2,961## Columns: 11## $ title &amp;lt;chr&amp;gt; &amp;quot;Avatar&amp;quot;, &amp;quot;Titanic&amp;quot;, &amp;quot;Jurassic World&amp;quot;, &amp;quot;The Ave...## $ genre &amp;lt;chr&amp;gt; &amp;quot;Action&amp;quot;, &amp;quot;Drama&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;...## $ director &amp;lt;chr&amp;gt; &amp;quot;James Cameron&amp;quot;, &amp;quot;James Cameron&amp;quot;, &amp;quot;Colin Trevor.</description>
+#contents of the movies dataset glimpse(movies)## Rows: 2,961## Columns: 11## $ title &amp;lt;chr&amp;gt; &amp;quot;Avatar&amp;quot;, &amp;quot;Titanic&amp;quot;, &amp;quot;Jurassic World&amp;quot;, &amp;quot;The Ave...## $ genre &amp;lt;chr&amp;gt; &amp;quot;Action&amp;quot;, &amp;quot;Drama&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;.</description>
     </item>
     
     <item>

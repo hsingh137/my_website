@@ -1,6 +1,6 @@
 
 ---
-title: 'IMDB ratings: Differences between directors'
+title: 'IMDB: What makes a high grossing movie'
 date: '2017-10-31T21:28:43-05:00'
 description: ''
 draft: no
@@ -52,9 +52,8 @@ options(scipen = 999)
 
 
 
-### IMDB Ratings: A primer 
-INSERT some details about the dataset 
-
+### IMDB 
+In this post I will be exploring the IMDB dataset to see what 
 
 
 

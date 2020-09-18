@@ -1,0 +1,51 @@
+
+---
+title: 'AirBnB: Using Machine Learning to Predict Prices in Singapore'
+date: '2017-10-31T21:28:43-05:00'
+description: ''
+draft: no
+image: imdb.png
+keywords: ''
+slug: airbnb
+categories:
+- ''
+- ''
+---
+
+
+
+
+```{r, setup, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=11, 
+  fig.height=6,
+  fig.align = "center"
+)
+```
+
+
+```{r load-libraries, echo=FALSE , warning = FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(GGally)
+library(readxl)
+library(here)
+library(skimr)
+library(janitor)
+library(broom)
+library(tidyquant)
+library(infer)
+library(openintro)
+library(knitr)
+library(kableExtra)
+options(scipen = 999)
+```

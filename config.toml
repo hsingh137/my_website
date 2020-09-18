@@ -104,10 +104,10 @@ disqusShortname = ""
       url = "blogs/imdb_rat"
 
     [[params.tiles.showcase]]
-      title = "Magna"
+      title = "Predicting AirBnB prices using Machine Learning"
       subtitle = "Lorem Etiam Nullam"
       image = "pic03.jpg"
-      url = "blogs/magna"
+      url = "blogs/airbnb"
 
     [[params.tiles.showcase]]
       title = "Ipsum"

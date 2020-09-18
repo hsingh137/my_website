@@ -1,0 +1,1003 @@
+
+---
+title: 'AirBnB: Using Machine Learning to Predict Prices in Singapore'
+date: '2017-10-31T21:28:43-05:00'
+description: ''
+draft: no
+image: imdb.png
+keywords: ''
+slug: airbnb
+categories:
+- ''
+- ''
+---
+
+
+
+
+```{r, setup, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=11, 
+  fig.height=6,
+  fig.align = "center"
+)
+```
+
+
+```{r load-libraries, echo=FALSE , warning = FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(GGally)
+library(readxl)
+library(here)
+library(skimr)
+library(janitor)
+library(broom)
+library(tidyquant)
+library(infer)
+library(openintro)
+library(knitr)
+library(kableExtra)
+options(scipen = 999)
+```
+
+
+
+
+```{r load data}
+#importing the raw data from insideairbnb.com 
+#used read_csv as vroom caused a column mismatch
+df_raw <- read_csv(here("data","listings.csv"))
+```
+
+```{r}
+# Creating custom theme and palette for visualizations
+
+# Generate the colors for the chart procedurally with RColorBrewer
+palette <- brewer.pal("Greys", n=9)
+color.background = palette[2]
+color.grid.major = palette[3]
+color.axis.text = palette[6]
+color.axis.title = palette[7]
+color.title = palette[9]
+
+#setting up a fil paletter
+fill_palette <- c('#EAAEAE' , '#E8C29C'  , '#E4B181' , '#DE9754')
+
+#creating custom theme
+theme_cust <- theme_minimal(base_size = 13) +
+  theme(
+    #formatting the axis
+    axis.line = element_blank() ,
+    axis.text=element_text(size=10,color=color.axis.text, face = 'bold', family = 'Helvetica'),
+    axis.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+    
+    #formatiing title
+    plot.title = element_text(size=16,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+    plot.subtitle = element_text(size=13,color=color.axis.text , family = 'Helvetica' , face = 'bold'),
+    
+    
+    #panel background
+    panel.background = element_rect(fill = color.background , color = color.background),
+    
+    #plot background 
+    plot.background = element_rect(fill = color.background , color = color.background),
+    
+    # Format the grid
+   panel.grid.minor=element_line(color=color.grid.major,size=.25) 
+   
+   #legend posiition
+  )
+```
+
+# Exploratory Data Analysis
+
+## Inspecting the data 
+Firstly we glimpse and skim the data from [insideairbnb.com]() to inspect it (please refer to the appendix if you wish to visualize these).  
+
+```{r, cache=TRUE, eval = FALSE}
+#glimpsing the data frame to get a sense of the raw data
+glimpse(df_raw)
+```
+
+```{r, cache=TRUE, eval = FALSE}
+#Skim for further inspection of the data frame 
+skimr::skim(df_raw)
+```
+By taking a first look at the raw data available on the AirBnB listings in Singapore we see that the data frame is made up of 7323 observations (rows) and 106 variables (columns). Notably, from the glimpse function above we see that certain variables are stored with the incorrect data type, specifically we have quantitative variables (eg. price, cleaning_fee, extra_people) incorrectly stored as character variables and will have to be converted into numeric data throughout the process. Similarly, the skim function suggests the presence of duplicates and missing values, which will have to be cleaned out. 
+
+Even though there are many variables in the data frame, below is a brief description of some of the noteworthy variables collected, with cost data typically expressed in US$: 
+
+- `price` = cost per night
+- `cleaning_fee`: cleaning fee
+- `extra_people`: charge for having more than 1 person
+- `property_type`: type of accommodation (House, Apartment, etc.)
+- `room_type`:
+  * Entire home/apt (guests have entire place to themselves)
+  * Private room (Guests have private room to sleep, all other rooms shared)
+  * Shared room (Guests sleep in room shared with others)
+- `number_of_reviews`: Total number of reviews for the listing
+- `review_scores_rating`: Average review score (0 - 100)
+- `longitude, latitude`: geographical coordinates to help us locate the listing
+- `neighbourhood`: three variables on a few major neighbourhoods in each city
+- `square_feet`: size of the listing in square feet
+- `cancellation policy`: type of cancellation policy (flexible, moderate, strict)
+- `host_is_identified`: indicates if the host has been validated by airbnb (True or False)
+- `host_is_superhost`: if the host is experienced and has received consistently positive reviews
+
+## Cleaning the data 
+Next, conscious of time constraints and with the aim of making the size of the data more manageable, we exclude from the data frame the variables that we deemed as not needed or unsuitable for the purpose of our study. For example, `square_feet` would have been an interesting variable for our analysis, however the skim revealed over 7000 missing values and mostly 0s among the remaining data points.  
+
+```{r, data frame simplification}
+##selecting the needed variables 
+df_fil <- df_raw %>%
+  select(id,listing_url,
+         price, cleaning_fee , extra_people, property_type,  room_type,
+         number_of_reviews, review_scores_rating,  
+         latitude ,longitude , is_location_exact,
+         neighbourhood_cleansed , neighbourhood_group_cleansed, neighbourhood, 
+         bathrooms,bedrooms,beds,
+        host_identity_verified, host_is_superhost, accommodates,
+        cancellation_policy, minimum_nights, guests_included)
+
+```
+We proceed to convert the relevant data columns into numeric values.
+```{r, numeric transformation}
+# turn prices, cleaning_fee and extra people into a numeric column
+#and removing the '$' and ','
+df_fil <- transform(df_fil,price=as.numeric(sub("\\$","", sub(",","", price)),na.rm=TRUE),
+                cleaning_fee=as.numeric(sub("\\$","", sub(",","", cleaning_fee)),na.rm=TRUE),
+                extra_people=as.numeric(sub("\\$","", sub(",","", extra_people)),na.rm=TRUE))
+
+```
+
+Aditionally, to clean our data further we remove duplicated listings (repetitions in the variable `id`) and missing values (NAs) within `price`, which is a necessary variable for our analysis. 
+
+```{r, remove duplicate listings and NAs} 
+df_cleaned <- df_fil%>%
+#removing duplicate ids 
+ filter(duplicated(id) == FALSE) %>%
+#removing listings with missing price
+  filter(is.na(price) == FALSE)
+
+```
+
+In the following section we clean one variable at a time to improve data quality and the reliability of our results. 
+After researching the listings we replace the NA in `cleaning_fee` with zero as these are AirBnBs that do not charge for cleaning or include the charge in the `price`.
+
+```{r, cleaning fee NAs into 0}
+#creating a new column with NAs replaced with zeros for cleaning fees 
+df_cleaned <- df_cleaned %>%
+  mutate(cleaning_fee_cleaned = 
+case_when(is.na(cleaning_fee) ~ 0,
+           TRUE ~ cleaning_fee))
+
+```
+Similarly, we replace the NAs for the variable `extra_people` with zeros. 
+```{r, replace NA with 0 for extra people}
+
+#creating a new column with NAs replaced with zeros for extra people 
+df_cleaned <- df_cleaned %>%
+  mutate(extra_people_clean = 
+case_when(is.na(extra_people) ~ 0,
+           TRUE ~ extra_people))
+
+```
+Next, we simplify the variable `property_type` by reducing it to the top 5 most common types and grouping the rest into a new category named *other*.
+```{r, cleaning the property type column}
+
+#adjusting the property type column 
+df_cleaned <- df_cleaned %>% 
+  mutate(prop_type_simplified = case_when( property_type %in% c("Apartment","Condominium", "Serviced apartment","House", "Hostel") ~ property_type, TRUE ~ "Other" ))
+
+#visualizing the most common property types 
+df_cleaned %>% group_by(prop_type_simplified) %>% 
+  tally() %>% 
+  arrange(desc(n)) %>% 
+  rename("Property Type" = prop_type_simplified) %>% 
+  #Formatting the table for HTML
+kbl(caption = "Property type of AirBnB Listings in Singapore") %>% 
+  kable_styling() 
+
+```
+For the variable `bedrooms` we noticed the unusual value of zero, as seen from the graph below. Upon further research we realized this referred to studios and hence decided to keep in the data frame without modification making the assumption that the zeros are not a mistake in the data but rather refer to listings such as studios. The same reasoning was applied for the zeros for the variable `beds`. 
+```{r, fig.height=5, fig.width=11}
+#plotting historgram for price and price 4 nights
+bedroom_plot <- df_fil %>%
+  group_by(bedrooms) %>% 
+  tally() %>% 
+
+ggplot() +
+  geom_col( aes(x = bedrooms, y = n), fill= fill_palette[1],alpha = 0.9) +
+   geom_hline(aes(yintercept = 0), size = 1) +
+  labs(title = "Listings with no Bedrooms in the data", 
+       subtitle = "Distribution of the number of bedrooms",
+        y = 'Count' , x  = 'Number of Bedrooms') +
+  theme_cust
+
+bed_plot <- df_fil %>%
+  group_by(beds) %>% 
+  tally() %>% 
+
+ggplot() +
+  geom_col( aes(x = beds, y = n), fill= fill_palette[1],alpha = 0.9) +
+   geom_hline(aes(yintercept = 0), size = 1) +
+  labs(title = "Listings with no Beds in the data", 
+       subtitle = "Distribution of the number of bedrooms",
+        y = 'Count' , x  = 'Number of beds') +
+  theme_cust
+
+grid.arrange(bed_plot ,bedroom_plot, nrow = 1)
+
+```
+
+As seen in our skim of the data, the variable `room_type` does not have missing values and hence we did not modify it.  
+
+Next we inspect the `neighborhoods` and order them by number of listings. Singapore has a total of 40 neighbourhoods, which, for the purpose of our analysis have been grouped into 5 macro-areas.
+```{r, neighbourhoods}
+
+#inspecting neighborhoods and ordering them by number of listings
+df_cleaned %>% group_by(neighbourhood_group_cleansed) %>% 
+  tally() %>% 
+  arrange(desc(n)) %>% 
+  rename("Area"= neighbourhood_group_cleansed, "Total Listings" = n) %>% 
+  #Formatting the table for HTML
+kbl(caption = "Concentration of AirBnB Listings in Singapore's 5 main areas") %>% 
+  kable_styling()
+
+```
+Some of the observations are also missing data points (NAs) for the variables`host_is_identified` and `host_is_superhost`, which we remove below. 
+
+We also remove the observations which lack a data point for `review_scores_rating`. Whilst we are aware that this will reduce the volume of our data frame significantly (of almost 3000 observations), we want to prioritize the quality of our data over the quantity and are confident that the remaining data frame represents a sufficient sample size for a reliable analysis. 
+```{r} 
+df_cleaned <- df_cleaned %>%
+#remove NAs
+  filter(is.na(host_is_superhost) == FALSE) %>%
+#remove NAs
+  filter(is.na(host_identity_verified) == FALSE) %>%
+#We remove NAs 
+  filter(is.na(review_scores_rating) == FALSE) 
+
+```
+Given that we want to analyse a stay  of 4 nights we will be filtering out from our data frame the listings that require a minimum of a 5 night stay.
+```{r} 
+df_cleaned <- df_cleaned %>%
+#remove listings that do not require more than 4 nights 
+  filter(minimum_nights < 5) 
+
+```
+We update the data frame by removing the now outdated columns, which have been cleaned above and compute accomodation cost for 4 nights for 2 people.  
+```{r, }
+
+df_final <- df_cleaned %>% 
+  #removing unwanted columns from the data frame 
+  select(-c(cleaning_fee, property_type, extra_people)) %>% 
+  #create a new column with tot price for 4 nights for 2 people per listing
+  mutate(extra_cost = as.numeric(guests_included < 2)) %>%
+  mutate(price_4_nights= price*4 +cleaning_fee_cleaned+extra_cost*extra_people_clean)
+
+```
+```{r, eval = FALSE}
+
+#we skim the updated data frame
+skim(df_final)
+
+```
+## Exploring the data
+### Summary Statistics
+```{r}
+#computing summary statistics for price variable using favstats
+price_stats <- favstats(~ prices, data = df_final) 
+#computing summary statistics for number_of_reviews variable 
+reviews_stats <- favstats(~ number_of_reviews, data = df_final)
+#computing summary statistics for review_scores_rating variable 
+rating_stats <- favstats(~ review_scores_rating, data = df_final)
+#computing summary statistics for bedrooms variable 
+bedrooms <- favstats(~ bedrooms, data = df_final)
+#computing summary statistics for beds variable 
+beds <- favstats(~ beds, data = df_final)
+#computing summary statistics for bathrooms variable 
+bathrooms <- favstats(~ bathrooms, data = df_final)
+#computing summary statistics for accommodates variable 
+accommodates <- favstats(~ accommodates, data = df_final)
+#computing summary statistics for minimum_nights variable 
+min_nights <- favstats(~ minimum_nights, data = df_final)
+#computing summary statistics for guests_include variable 
+guests_included <- favstats(~ guests_included, data = df_final)
+#computing summary statistics for cleaning_fee_cleaned variable 
+cleaning_fee_cleaned <- favstats(~ cleaning_fee_cleaned, data = df_final)
+#computing summary statistics for price_4_nights variable 
+price_4_nights <- favstats(~ price_4_nights, data = df_final)
+
+#combined all of the above summary statistics for our variables in one table
+sum_tab <- rbind(price_stats, reviews_stats, rating_stats, bedrooms, beds, bathrooms, accommodates, min_nights, guests_included, cleaning_fee_cleaned, price_4_nights) %>%
+  #adding a column with the variable names 
+  mutate(variable  = c("Prices" , "Reviews" , "Ratings", "Bedrooms", "Beds", "Bathrooms", "Accommodates", "Min Nights", "Guests Included", "Cleaning fee", "Price 4 nights")) 
+sum_tab[,c(10,1:9)] %>% 
+  #Formatting the table for HTML
+kbl(caption = "Summary Statistics for Singapore's AirBnB listings") %>% 
+  kable_styling() 
+
+```
+From an initial overview of our summary statistics we extracted 5 main observations: 
+
+1. The `price` has a significantly higher mean than its median (154 and 101 respectively), suggesting the presence of outliers (particularly expensive listings) pushing the mean upward.
+2. The `number_of_reviews` have an average of 25 reviews and a median of 7, but a maximum of 370, which is a surprisingly high number of reviews, likely an exception in our data, which also what pushed up the mean from the median.
+3. The maximum `cleaning_fee` is of $900, which is significantly greater that the average fee of 25, which will increase the overall price for that listing. Upon internet research we have confirmed that this high cleaning fee is accurate.
+4. Unsurprisingly, price_4_nights have a higher standard deviation than price, suggesting a higher viability, as this is a combination of several charges. 
+5. Comparing the 75th percentile with the maximum value for our variables we note that both `beds` and `guests_included` have an outlier. Moreover, it is unusual how `guests_included` go up to 50 but `beds` actually goes up to 58. 
+
+
+
+### Visualizations of the dependant variables 
+
+First, we will plot the distributions for prices and `prices_4_nights`.
+```{r , fig.width= 8 , fig.height= 8}
+#plotting historgram for price and price 4 nights
+
+p1 <- df_final %>%
+
+  pivot_longer(cols = c(price, price_4_nights) ,names_to ='Type' , values_to = 'Price' ) %>%
+ggplot() +
+  geom_histogram( aes(x = Price ,  fill = Type , color = Type),alpha = 0.9 , bins = 30  ) +
+  labs(title = "Prices revolve around $154 per night", 
+       subtitle = "Distribution of the prices of AirBnBs in Singapore",
+        y = 'Count' , x  = 'Price USD($)') +
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_x_log10()+
+  scale_color_manual(values = fill_palette)+
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),)
+ 
+p2 <- df_final %>%
+  pivot_longer(cols = c(price, price_4_nights) ,names_to ='Type' , values_to = 'Price' ) %>%
+ggplot() +
+  geom_density( aes(x = Price ,  fill = Type , color = Type),alpha = 0.9 ,   ) +
+  labs(title = "", 
+       subtitle = "Distribution of the prices of AirBnBs in Singapore",
+        y = 'Density' , x  = 'Price USD($)') +
+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_color_manual(values = fill_palette)+
+  scale_x_log10() +
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),) +
+  #adding two mean vline 
+  geom_vline(xintercept =  mean(df_final$price), size = 1 , color = fill_palette[4]) +
+ geom_vline(xintercept =  mean(df_final$price_4_nights), size = 1 , color = fill_palette[4]) +
+  geom_text(aes(x = mean(df_final$price_4_nights), y = -0.05) , label = round(mean(df_final$price_4_nights),) , 
+            color=color.axis.text , family = 'Helvetica',)+
+  geom_text(aes(x = mean(df_final$price), y = -0.05) , label = round(mean(df_final$price),), 
+            color=color.axis.text , family = 'Helvetica',) +
+  #adding source caption
+  geom_text(aes(x = 10000, y = 0.1) , label = 'Source: insideairbnb' , 
+            color=color.axis.text , family = 'Arial',)
+  
+grid.arrange(p1, p2, nrow = 2)  
+
+```
+
+From the chart above we see that `price` and `price_4_nights`, the price for two people staying in Singapore for four nights, are roughly normally distributed around their respective means of $154 and \$646. `price_4_nights` as expected is much higher due to it being a combination of several variables including `price`, `cleaning_fee`, `extra_people`, and `guest_included`. 
+
+Next we plot the count distribution of number of reviews and the rating. 
+```{r fig.width= 8 , fig.height= 8}
+
+#plotting density plot for number of reviews 
+p3 <- df_final %>%
+  ggplot() +
+  geom_density( aes(x = number_of_reviews) ,  fill = fill_palette[1] , color = fill_palette[1] ,alpha = 0.9 ,   ) +
+  labs(title = "Most listings get approx. 25 reviews with an average rating of 90 ", 
+       subtitle = "Distribution of Number of Reviews",
+        y = 'Density' , x  = 'Number of Reviews') +
+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_color_manual(values = fill_palette)+
+  scale_x_log10() +
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),) +
+  #adding two mean vline 
+  geom_vline(xintercept =  mean(df_final$number_of_reviews), size = 1 , color = fill_palette[4]) +
+   geom_text(aes(x = mean(df_final$number_of_reviews), y = -0.05) , label = round(mean(df_final$number_of_reviews)), 
+            color=color.axis.text , family = 'Helvetica',)+
+  geom_vline(xintercept = 1 , size = 1)
+
+
+#plotting density plot for reivew_rating
+p4 <- df_final %>%
+  ggplot() +
+  geom_density( aes(x = review_scores_rating ) ,  fill = fill_palette[1] , color = fill_palette[1] ,alpha = 0.9 ,   ) +
+  labs(title = "", 
+       subtitle = "Distribution of Ratings",
+        y = 'Density' , x  = 'Rating Score') +
+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_color_manual(values = fill_palette)+
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),) +
+  #adding two mean vline 
+  geom_vline(xintercept =  mean(df_final$review_scores_rating), size = 1 , color = fill_palette[4]) +
+   geom_text(aes(x = mean(df_final$review_scores_rating), y = -0.01) , label = round(mean(df_final$review_scores_rating)) , 
+            color=color.axis.text , family = 'Helvetica',)+
+  geom_vline(xintercept = 100 , size = 1)+
+    #adding source caption
+  geom_text(aes(x = 40, y = 0.01) , label = 'Source: insideairbnb' , 
+            color=color.axis.text , family = 'Arial',)
+
+grid.arrange(p3,p4,nrow= 2)
+
+```
+
+From the above graph, we see that the average number of reviews for a listing is 25. However, with some listings receiving over 300 reviews, we consider the median of 7 reviews to be a better point of estimate. It seems, from the second graph that most ratings were relatively positive so it might not be a great predictor of price due to lack of differentiation. 
+
+```{r,  fig.width= 12 , fig.height= 7 }
+
+#plotting density plot for neighbourhood_cleansed
+p5 <- df_final %>%
+  group_by(neighbourhood_cleansed ) %>%
+  tally() %>%
+  ggplot() +
+  geom_col( aes(x = reorder(neighbourhood_cleansed,n), y = n ) ,  fill = fill_palette[1] , color = fill_palette[1] ,alpha = 0.9 ,   ) +
+  labs(title = "Neighbourhoods in Central Regions \n have much higher listings", 
+       subtitle = "Number of listings in each neighbourhood",
+        y = 'Count' , x  = 'Neighbourhood') +
+  scale_x_discrete(expand = c(0,0))+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_color_manual(values = fill_palette)+
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        panel.grid.major.y = element_blank(),panel.grid.minor.y = element_blank(),
+        )  +
+  coord_flip()
+
+
+
+#plotting density plot for neighbourhood_cleansed_group
+p6 <- df_final %>%
+  group_by(neighbourhood_group_cleansed ) %>%
+  tally() %>%
+  ggplot() +
+  geom_col( aes(x = reorder(neighbourhood_group_cleansed,n), y = n ) ,  fill = fill_palette[1] , color = fill_palette[1] ,alpha = 0.9 ,   ) +
+  labs(title = "", 
+       subtitle = "Number of listings per area of the city",
+        y = 'Count' , x  ='') +
+  scale_x_discrete(expand = c(0,0))+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_color_manual(values = fill_palette)+
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),)  +
+  coord_flip()+
+     #adding source caption
+  geom_text(aes(x = 'North Region' , y = 1500) , label = 'Source: insideairbnb' , 
+            color=color.axis.text , family = 'Arial',)
+
+
+grid.arrange(p5,p6, nrow = 1)
+
+
+```
+
+From the first graph we see that Geylang, being a well known tourist hub also has the most listings.
+As the neighbourhoods are numerous they have been grouped into 5 city areas for ease of analysis and minimizing the risk of overfitting. Here we see, as expected, that the central region has by far the most listings as it would be the most popular for tourists.
+
+```{r , fig.width= 9}
+#plotting density plot for number of reviews 
+df_final %>%
+  ggplot() +
+  geom_density( aes(x = accommodates) ,  fill = fill_palette[1] , color = fill_palette[1] ,alpha = 0.9 ,   ) +
+  labs(title = "Most hosts prefer smaller groups", 
+       subtitle = "Distribution of number of people listings accomodate",
+        y = 'Density' , x  = 'Number of poeple accomodated by listing') +
+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_color_manual(values = fill_palette)+
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),) +
+  #adding two mean vline 
+  geom_vline(xintercept =  mean(df_final$accommodates), size = 1 , color = fill_palette[4]) +
+   geom_text(aes(x = mean(df_final$accommodates), y = -0.02) , label = round(mean(df_final$accommodates)), 
+            color=color.axis.text , family = 'Helvetica',)+
+  geom_vline(xintercept = 0 , size = 1)+
+    #adding source caption
+  geom_text(aes(x = 12 , y = 0.1) , label = 'Source: insideairbnb' , 
+            color=color.axis.text , family = 'Arial',)
+
+```
+
+We can see from the above density plot that most listings are for fewer than 5 people with a few outliers that can accommodate up to 15 people. Upon further exploration of these properties, we realized that those are not outliers due to error but are mostly hostels or other accommodations for large groups.
+
+```{r , fig.width = 8}
+
+#plotting count plot for each property type
+df_final %>%
+  group_by(prop_type_simplified ) %>%
+  tally() %>%
+  ggplot() +
+  geom_col( aes(x = reorder(prop_type_simplified,n), y = n ) ,  fill = fill_palette[1] , color = fill_palette[1] ,alpha = 0.9 ,   ) +
+  labs(title = "The vast majority of AirBnB listings are apartments", 
+       subtitle = "Number of listings for each Property Type",
+        y = 'Count' , x  = 'Property Type') +
+  scale_x_discrete(expand = c(0,0))+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_color_manual(values = fill_palette)+
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),)  +
+  coord_flip()+ 
+     #adding source caption
+  geom_text(aes(x = 'Serviced apartment', y = 750) , label = 'Source: insideairbnb' , 
+            color=color.axis.text , family = 'Arial',)
+
+
+```
+
+From the chart above, we see that the vast majority of listings are apartments and condominiums. It is interesting to see that the category `other` is ranked 3rd suggesting that there is a large variety of property types on offer in Singapore.  
+\n
+
+We can also plot the distribution of cleaning fees and extra charges to see how common they are as these are added on to the `price_4_nights`.
+
+```{r, fig.width=8 , fig.height = 10}
+
+#plotting density plot for cleanning fee
+p7 <- df_final %>%
+  ggplot() +
+  geom_density( aes(x = cleaning_fee_cleaned) ,  fill = fill_palette[1] , color = fill_palette[1] ,alpha = 0.9 ,   ) +
+  labs(title = "Hosts love those extra charges", 
+       subtitle = "Distribution of cleaning fee",
+        y = 'Density' , x  = 'Cleaning Fee USD') +
+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_color_manual(values = fill_palette)+
+  scale_x_log10()+
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),) +
+  #adding two mean vline 
+  geom_vline(xintercept =  mean(df_final$cleaning_fee_cleaned), size = 1 , color = fill_palette[4]) +
+   geom_text(aes(x = mean(df_final$cleaning_fee_cleaned), y = -0.02) , label = round(mean(df_final$cleaning_fee_cleaned)) , 
+            color=color.axis.text , family = 'Helvetica',)+
+  geom_vline(xintercept = 1 , size = 1)
+
+
+#plotting density plot for number of reviews 
+p8 <- df_final %>%
+  ggplot() +
+  geom_density( aes(x = extra_people_clean ) ,  fill = fill_palette[1] , color = fill_palette[1] ,alpha = 0.9 ,   ) +
+  labs(title = "", 
+       subtitle = "Distribution of charge of extra people",
+        y = 'Density' , x  = 'Extra People Charge ') +
+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_fill_manual(values = fill_palette)+
+  scale_color_manual(values = fill_palette)+
+  scale_x_log10()+
+  theme_cust+
+  theme(legend.position =  'bottom' , 
+        legend.title = element_text(size=13,color=color.axis.text , face = 'bold', family = 'Helvetica'),
+        legend.text = element_text(size=10,color=color.axis.text , face = 'bold', family = 'Helvetica'),) +
+  #adding two mean vline 
+  geom_vline(xintercept =  mean(df_final$extra_people_clean ), size = 1 , color = fill_palette[4]) +
+     geom_text(aes(x = mean(df_final$extra_people_clean ), y = -0.02) , label = round(mean(df_final$extra_people_clean)), 
+            color=color.axis.text , family = 'Helvetica',)+
+  geom_vline(xintercept = 1 , size = 1) +
+    #adding source caption
+  geom_text(aes(x = 100 , y = 0.5) , label = 'Source: insideairbnb' , 
+            color=color.axis.text , family = 'Arial',)
+
+grid.arrange(p7,p8, nrow = 2)
+```
+
+### Visualization of the relationship between variables
+
+```{r, fig.height=6, fig.width=10}
+
+p12 <- df_final %>% 
+  ggplot() +
+  geom_point(aes(x = review_scores_rating, y = price_4_nights, color = number_of_reviews), alpha  = 0.7, size = 1 ,)+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_distiller(palette = "Set3" , direction = 1) +
+  scale_fill_gradient(name = "count", trans = "log") +
+  theme_cust+
+  labs(x = "Rating Score", 
+       y = "Price for four Nights", 
+       title = "",
+       subtitle = "Price for four nights vs Rating Score",
+       color = "Log of number of reviews")
+
+p12
+```
+From the graph above, we can see the relationship between the rating, number of reviews and the price of the listings. At first glance there is no clear-cut correlation, as we can see both expensive and affordable listings with both high and low ratings. 
+Additionally, there is a significant cluster of listings that received a score between 80 and 100, independently of price, and we can assume that this is because the guests had chosen an AirBnB in the first place that is in line with their taste.
+
+Next, we use boxplots to explore `prop_type`,`neighbourhood_group_clensed` and its significance on `price_4_nights`. 
+
+```{r, fig.width=10, fig.height=12}
+
+box1 <- df_final %>% 
+  ggplot(aes(prop_type_simplified ,price_4_nights)) +
+geom_boxplot(fill = fill_palette[2]) +
+  scale_y_log10() +
+  theme_cust +
+  labs(y = "Price for 4 nights in USD", 
+       x = "",
+       title = "Serviced apartments are the most expensive type of AirBnB",
+       subtitle = "Price for 4 nights per type of property")
+
+box2 <- df_final %>% 
+  ggplot(aes(neighbourhood_group_cleansed ,price_4_nights)) +
+geom_boxplot(fill = fill_palette[1]) +
+  scale_y_log10() +
+  theme_cust +
+  labs(y = "Price for 4 nights in USD", 
+       x = "",
+       title = "On average AirBnBs in the Central Region are the most expensive",
+       subtitle = "Price for 4 nights per area")
+
+grid.arrange(box1, box2, nrow = 2)
+
+
+```
+
+From the first box plot we see significant variation among the average AirBnB pricing for 4 nights across the different property types, suggesting that that property type is a strong predictor. Hence it can be inferred that the pricing is contingent upon the property type. For instance, a hostel accommodation falls under the lower price spectrum. 
+
+We see a lesser variation across city areas, which might have been mitigated with the grouping of different neighborhoods. 
+ 
+
+### Visualizing Correlation
+
+The purpose of this section is to investigate any collinearity between our explanatory variables (x), which is necessary for selecting explanatory variables that do not impair the quality in our multiple regression models.
+
+From the pairs plot we can see that the independent variables all have a weak correlation with `price_4_nights`, suggesting that they will not be strong predictors. However, we observe a positive correlation between accommodates and both beds and bedrooms, demonstrating a presence of collinearity.  
+
+```{r,cache=TRUE, fig.width=20,fig.asp=1}
+#Plotting gg pairs - correlation matrix
+
+to_plot <-df_final %>% 
+#Deselecting variables which are irrelevant for our ggplot visualization.
+  select(-c(id, listing_url, neighbourhood, neighbourhood_cleansed, latitude, longitude, minimum_nights, price, cleaning_fee_cleaned, extra_people_clean, guests_included, extra_cost))
+#Plotting ggpairs to visualize correlation of explanatory variables
+
+to_plot %>% 
+    select_if(is.numeric) %>%
+    ggpairs()
+
+```
+
+### Geographical Mapping
+
+```{r}
+
+leaflet(data = filter(df_final, minimum_nights <= 4)) %>% 
+  addProviderTiles("OpenStreetMap.Mapnik") %>% 
+  addCircleMarkers(lng = ~longitude, 
+                   lat = ~latitude, 
+                   radius = 1, 
+                   fillColor = "#e6550d", 
+                   fillOpacity = 0.9, 
+                   popup = ~listing_url,
+                   label = ~prop_type_simplified)
+```
+
+# Regression Analysis
+
+We begin by omitting some variables that we will not be using in our regression analysis, and converting character variables to factors. In this section, we fit linear models to predict the total cost for two people to stay at the Airbnb property for 4 nights, in other words, the **price_4_nights** variable. In the following subsections, we investigate the significance of various predictors for predicting this variable.
+
+```{r}
+regression_data <- df_final %>% 
+  select(-c(id, listing_url, latitude, longitude, neighbourhood, price, cleaning_fee_cleaned, extra_people_clean, extra_cost,guests_included)) %>%  
+  transform(room_type =as.factor(room_type),
+            neighbourhood_cleansed = as.factor(neighbourhood_cleansed),
+            neighbourhood_group_cleansed = as.factor(neighbourhood_group_cleansed),
+            cancellation_policy = as.factor(cancellation_policy),
+            prop_type_simplified = as.factor(prop_type_simplified))
+
+
+glimpse(regression_data)
+```
+
+## Model fitting
+
+### A simple model
+
+We first fit a linear model called model1 using prop_type_simplified, number_of_reviews, and review_scores_rating and the significance of these variables as predictors are evaluated with R. 
+```{r}
+#Linear regression between price_4_night and prop_type_simplified, number_of_reviews, and review_scores_rating
+model1<- lm(log(price_4_nights)~prop_type_simplified+number_of_reviews+ review_scores_rating,data=regression_data)
+#Look at model result
+glance(model1)%>%
+  kbl()%>%
+  kable_styling()
+#Look at result for each parameter.
+model1 %>%
+  tidy()%>%
+  kbl() %>% 
+  kable_styling()
+
+#Check residuals
+autoplot(model1)
+#Check VIF
+vif(model1)
+```
+All the variables in this model is significant, so we should include them in our model. The adj R square of this model is 0.16 which means only 16% of price_4_nights can be explained by our model. This is not a good number, we should try to add more variables.
+From the residual plot, we see overall the residuals are randomly, wich means our model do not a big problem. All the GVIFs are under 5, so we don't need to worry about collinearity in our model.
+
+Now, we would like to examine if room_type is a significant predictor, and thus fit another model, model2 with room_type added as a variable.
+```{r}
+
+#Adding rrom_type in to linear regression model.
+model2<- lm(log(price_4_nights)~prop_type_simplified+number_of_reviews+ review_scores_rating + room_type,data=regression_data)
+#Look at model result
+glance(model2)%>%
+  kbl()%>%
+  kable_styling()
+#Look at result for each parameter.
+model2 %>%
+  tidy()%>%
+  kbl() %>% 
+  kable_styling()
+
+#Check residuals
+autoplot(model2)
+#Check VIF
+vif(model2)
+```
+We see that the adjusted R-squared score has increased greatly and the p-value is very small for room_type. Those statistics let us know room_type is indeed a good predictor of price, and we should add it into our model.
+Meanwhile, residual plot and VIFs also look good.
+
+### Further exploration
+
+Even though the adj R square improve a lot by adding room_type, it is still only 0.42(<0.5). We want to further investigate the significance of the number of bathrooms, beds, bedrooms and the size of the house. 
+```{r}
+#Continually adding bathrooms, beds, bedrooms and the size of the house in to linear regression model.
+model3<- lm(log(price_4_nights)~prop_type_simplified+number_of_reviews+ review_scores_rating + room_type +
+              bathrooms+bedrooms+beds+accommodates+host_is_superhost+
+              is_location_exact+cancellation_policy +neighbourhood_group_cleansed
+            ,data=regression_data)
+#Look at model result
+glance(model3)%>%
+  kbl()%>%
+  kable_styling()
+#Look at result for each parameter.
+model3 %>%
+  tidy()%>%
+  kbl() %>% 
+  kable_styling()
+
+#Check residuals
+autoplot(model1)
+#Check VIF
+vif(model1)
+```
+After adding these variables, adjusted R-squared increases to 0.53 now. This model now is able to explain 53% of price_4_night. However, the P value of east region neighbourhood is not significant. We want to futher explore it we can find the best way to handle the neighbourhood and improve our model.
+
+## Finding the best model
+
+We try to construct our best model with backwards elimination using the step() function, which allows us to quickly narrow down a subset of variables based on the Akaike Criterion (AIC). We also find that adding the interaction variable for room_type and cancellation_policy increases the adjusted R-squared value slightly. As such, this is the first model we will be working off. However, the model uses the categorical variable neighbourhood_cleansed, which has about 40 values, most of which are insignificant (large p-values). Due to the length output, we have left the coefficients of this model in the appendix. 
+```{r}
+#Adding interaction variable for room_type and cancellation_policy.
+step_model <- lm(formula = log(price_4_nights) ~ 
+                          number_of_reviews + review_scores_rating + 
+                          is_location_exact + neighbourhood_cleansed + 
+                          bathrooms + bedrooms + beds + 
+                          host_identity_verified + host_is_superhost + 
+                          accommodates + cancellation_policy*room_type + prop_type_simplified, 
+                          data = regression_data)
+
+tidyLm <-tidy(step_model)
+tidyLm$p.value = cell_spec(round(tidyLm$p.value,4) , color = ifelse(!is.na( tidyLm$p.value ) & tidyLm$p.value > 0.05,"red","black"))
+glance(step_model)%>%
+  kbl()%>%
+  kable_styling()
+
+```
+From table above, all the red number means we should not include these variables into our model. Since there are an excessive number of possible values for neighbourhood_cleansed, We explore by replacing neighbourhood_cleansed with neighbourhood_group_cleansed (which devides neighbourhood into regions) to reduce the number of factors. This produces a much cleaner model, but causes a lower adjusted R-squared score shown below.
+```{r}
+#replacing neighbourhood_cleansed with neighbourhood_group_cleansed
+group_model <- lm(formula = log(price_4_nights) ~ 
+    number_of_reviews + review_scores_rating + 
+    is_location_exact+ neighbourhood_group_cleansed+
+    prop_type_simplified+room_type*cancellation_policy + 
+    bathrooms + bedrooms + beds + accommodates+
+    host_identity_verified +host_is_superhost, 
+    data = regression_data)
+
+glance(group_model)%>%
+  kbl()%>% 
+  kable_styling() %>%
+  column_spec(2,color="red")
+group_model %>%
+  tidy()%>%
+  kbl(escape=F) %>% 
+  kable_styling()
+
+```
+Now the adjusted R-squared decreases from 0.616 to 0.558. We thus try to keep the more significant factors and drop the unnecessary ones. To do this, we first convert the neighbourhood_cleansed categorical variable into dummy variables (one-hot encoding). 
+
+```{r}
+#Making dummy variables
+binary_encoded <- dummy_cols(regression_data, select_columns = "neighbourhood_cleansed") 
+binary_encoded <- dummy_cols(binary_encoded, select_columns = "cancellation_policy") 
+binary_encoded <- dummy_cols(binary_encoded, select_columns = "prop_type_simplified") 
+binary_encoded <- dummy_cols(binary_encoded, select_columns = "neighbourhood_group_cleansed") 
+binary_encoded <- binary_encoded  %>%
+  select(-c(neighbourhood_cleansed,neighbourhood_group_cleansed,cancellation_policy,prop_type_simplified))
+
+```
+
+We then select the more significant neighbourhoods to include in our model based on the summaries from before. The cleaned model is shown below.
+```{r}
+#Only choose significant neighbourhoods, and add them into the mode
+final_model <- lm(formula = log(price_4_nights) ~ 
+    number_of_reviews + 
+    review_scores_rating + bedrooms + 
+    beds  + accommodates + 
+    neighbourhood_cleansed_Bedok + 
+    `neighbourhood_cleansed_Downtown Core` + 
+    neighbourhood_cleansed_Geylang +
+    `neighbourhood_cleansed_Marina South` +
+    neighbourhood_cleansed_Newton + 
+      neighbourhood_cleansed_Orchard + 
+    neighbourhood_cleansed_Outram + 
+      `neighbourhood_cleansed_River Valley` + 
+    neighbourhood_cleansed_Rochor + 
+    `neighbourhood_cleansed_Singapore River` + 
+      `neighbourhood_cleansed_Southern Islands` + 
+      neighbourhood_cleansed_Tuas + 
+    neighbourhood_cleansed_Woodlands + 
+      room_type*cancellation_policy_flexible + 
+    prop_type_simplified_Apartment + prop_type_simplified_Condominium + 
+    prop_type_simplified_House, 
+    data = binary_encoded)
+
+glance(final_model)%>%
+  kbl()%>%
+  kable_styling()
+final_model %>%
+  tidy()%>%
+  kbl(escape=F) %>% 
+  kable_styling()
+
+```
+Now all the P values are significant. Our adj. R square increases from 0.558 to 0.583. Combining with previous adjusted R-squared numbers, we think this is the best model for us to find now.
+
+Diagnostics of our final model.
+```{r}
+#Check residual plot
+autoplot(final_model)
+
+#Check VIF
+vif(final_model)
+```
+From the VIF table, we see that there are no values larger than 5 and the model does not appear to suffer from collinear variables. Also from the residual plot, no pattern shown up. Even though it is not a absolutely straight line, we think its acceptable.
+
+
+
+#### Best Model validation
+
+Now we will split the data into a test and train segments. 
+
+
+```{r}
+
+```
+
+
+```{r}
+
+##removing nas
+binary_encoded <- binary_encoded %>%
+  filter(is.na(beds) == FALSE & is.na(bedrooms) == FALSE)
+
+
+#getting train and test
+
+train_index <- sample(1:nrow(binary_encoded), 0.8 * nrow(binary_encoded))
+test_index <- setdiff(1:nrow(binary_encoded), train_index)
+
+
+
+# Build X_train, y_train, X_test, y_test
+X_train <- binary_encoded[train_index, -15]
+y_train <- binary_encoded[train_index, "price_4_nights"]
+
+X_test <- binary_encoded[test_index, -15]
+y_test <- binary_encoded[test_index, "price_4_nights"]
+```
+
+
+Training model on `X_train`
+
+```{r}
+
+#Only choose significant neighbourhoods, and add them into the mode
+final_model_val <- lm(formula = log(price_4_nights) ~ 
+    number_of_reviews + 
+    review_scores_rating + bedrooms + 
+    beds  + accommodates + 
+    neighbourhood_cleansed_Bedok + 
+    `neighbourhood_cleansed_Downtown Core` + 
+    neighbourhood_cleansed_Geylang +
+    `neighbourhood_cleansed_Marina South` +
+    neighbourhood_cleansed_Newton + 
+      neighbourhood_cleansed_Orchard + 
+    neighbourhood_cleansed_Outram + 
+      `neighbourhood_cleansed_River Valley` + 
+    neighbourhood_cleansed_Rochor + 
+    `neighbourhood_cleansed_Singapore River` + 
+      `neighbourhood_cleansed_Southern Islands` + 
+      neighbourhood_cleansed_Tuas + 
+    neighbourhood_cleansed_Woodlands + 
+      room_type*cancellation_policy_flexible + 
+    prop_type_simplified_Apartment + prop_type_simplified_Condominium + 
+    prop_type_simplified_House, 
+    data = X_train)
+
+
+```
+
+
+Now lets test model on the test_dataset 
+
+```{r}
+y_pred = predict(final_model_val , X_test)
+
+```
+
+
+Finally lets calculate the 
+
+```{r}
+MSE = mean((y_test - exp(y_pred))^2)
+
+RMSE = sqrt(MSE)
+
+RMSE
+```
+
+
+
+
+
+
+## Summary Table
+
+```{r}
+huxreg(list("model1" = model1, "model2" = model2, "model3" = model3, "step_model" = step_model,"group_model"=group_model, "final_model"=final_model))
+```
+
+
