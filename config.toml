@@ -99,7 +99,7 @@ disqusShortname = ""
 
     [[params.tiles.showcase]]
       title = "IMDB ratings: Differences between directors"
-      subtitle = "Difference between Directors"
+      subtitle = "Predicting Box Office "
       image = "imdb.png"
       url = "blogs/imdb_rat"
 

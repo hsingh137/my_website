@@ -59,7 +59,6 @@ INSERT some details about the dataset
 
 
 ### The Data
-
 ```{r , echo= FALSE , warning = FALSE}
 movies <- read_csv(here::here("content/blogs/data", "movies.csv"))
 #Creating the data table for the graph
@@ -81,6 +80,16 @@ As we can see the `movies` is a tibble with 2,961 rows and 11 columnswhere each 
 * `rating` is the average rating of the movie between 0 and 10 
 * `cast_facebook_likes` is the number of facebook likes of movie
 </ul>
+
+
+I will quickly check the data to see if there are any missing values as those can negatively impact our conclusions.
+
+```{r}
+#skimming dataset 
+skim(movies)
+```
+
+As you can see we see not missing values for any variable.
 
 
 ### Box office Gross- What makes a high grossing movie?
@@ -223,15 +232,16 @@ We see that the distribution of box office gross significantly varies between th
 
 ```{r}
 
-movies %>% 
+movies <- movies %>% 
   mutate(roi = round(((gross - budget)/budget)*100 , 2)) %>%
   mutate(budget_cat = case_when(
     budget < 5e7 ~ 'Low',
     budget >= 5e7 & budget < 1.5e8 ~ 'Medium' ,
     budget >= 1.5e8 ~ 'High'
     
-  ))%>%
-   ggplot(aes( x = budget_cat , y= roi)) +
+  ))
+
+   movies %>% ggplot(aes( x = budget_cat , y= roi)) +
   geom_boxplot( color =  '#F9F871'  , fill =  '#EA8272') + 
   
     #adding titles and other theme componenets 
@@ -261,6 +271,98 @@ movies %>%
 ```
 
 
-Now we see that the picture changes completely and the high budget movies don't see me to be as lucrative any more. The mean ROI of the low budget category is not the highest but there still seems to significant overlap between the high and low budget categories. 
+Now we see that the picture changes completely and the high budget movies don't see me to be as lucrative any more. The mean ROI of the low budget category is not the highest but there still seems to significant overlap between the high and low budget categories. So we will need to come up with a more statistically robust approach. 
+
+#### Hypothesis Test: Do low budget movies have a higher return on investment?
+
+I will now use the dataset to truly answer the question of whether it is worth investing in a big blockbuster or should you just spend your money on low budget movies and maximize the return on investment. I will use two methods a t test and bootstrapping to answer this question. I will answer this question by determining if the ROI of lower budget movies is much higher. 
+We will start with the null hypothesis *that the mean return on investment across both the categories is the same*.
+
+
+##### T test using t.test()
+
+```{r}
+#calcuating the summary statistics form 
+# favstats(roi ~ budget_cat, data = movies) %>%
+#   rename('Budget Category' = budget_cat) %>%
+#   kbl() %>%
+#   kable_styling()
+
+ movies %>% 
+  group_by(budget_cat)%>%
+  summarise(mean       = mean(roi,na.rm=TRUE), 
+            sd         = sd(roi,na.rm=TRUE), 
+            sample_size= n(),
+            t_crit     = abs(qt(0.05/2, sample_size-1)),
+            se         = sd/sqrt(sample_size),  #two-sided
+            low_ci     = mean- t_crit*se, 
+            hi_ci      = mean+ t_crit*se,
+            Median = median(roi ,na.rm = TRUE)) %>%
+  rename('Mean' = 'mean' , 'Standard Deviation' = sd , 'Sample Size' = sample_size,
+         'T Value' = t_crit, 'Standard Error' = se , 'Upper Confidence Interval' = hi_ci , 
+         'Lower Confidence Interval' = low_ci ) %>% 
+ kbl(caption = 'Summary Statyistics for each Category') %>%
+    kable_styling()
+```
+We, actually see no overlap in confidence intervals of the ROI  High budget Category and Low Budget and can thus disapprove the null hypothesis as the Low budget category provides significantly better returns. However I would like to note that there is a significant difference between the mean and median of the low budget category which signals the presence of major outliers. This makes sense as, every year there a few moives that are surprise 
+
+
+```{r}
+
+movies %>%
+  filter(budget_cat == 'Low') %>%
+  ggplot()+
+  geom_density(aes(roi) ,  color =  '#F9F871'  , fill =  '#EA8272', alpha = 0.7) + 
+  
+     #adding titles and other theme componenets 
+  labs(y = 'Count \n',
+       x = '\n ROI',
+       title = ' ' ,
+       subtitle = ' Distribution of Return on Investment') +
+  scale_colour_solarized("blue")+
+ scale_x_log10() + 
+  #limiting the y axis to avoid shrinking y axis due to out liers
+  #matching the graph to the theme
+  theme(
+        plot.background = element_rect(fill = '#2B304A', colour ='#2B304A' ),
+        axis.title = element_text(color = '#C7C8CF' , face = 'bold' ), 
+        axis.text =  element_text(color = '#C7C8CF' , face = 'bold') ,
+        panel.grid = element_blank() ,
+        panel.border = element_blank(),
+        plot.title = element_text(color = '#C7C8CF' , face = 'bold'),
+        plot.subtitle = element_text(color = '#C7C8CF' , face = 'bold'),
+        panel.background = element_rect(fill = '#2B304A', color = '#2B304A') ,
+        axis.ticks = element_line(color = '#C7C8CF'),
+)
+  
+  
+
+movies %>%
+  filter(budget_cat == 'Low') %>%
+  select(title, gross, budget, roi) %>%
+  arrange(desc(roi))%>% 
+  top_n(5) %>%
+ kbl(caption = 'Top 5 movies by ROI') %>%
+    kable_styling()
+
+```
+
+I plotted a density plot to confirm the presence of outliers in the low budget category. Here we see ROIs going upto 100 000% and the table also shows a few of these outstanding movies. Paranormal Activity was able to gross over 100mn with only a budget of 15,000 USD, that is just amazing. Is there something special about these movies that enabled them to get such high Return on Investment. 
+
+```{r}
+# Quick display of two cabapilities of GGally, to assess the distribution and correlation of variables 
+library(GGally)
+library(corrplot)
+
+
+movies %>%
+  filter(budget_cat == 'Low') %>%
+  select(c(roi , reviews, votes, cast_facebook_likes, rating)) %>%
+  cor( method = "pearson",) %>%
+ kbl(caption = 'Correlation Matrix ') %>%
+    kable_styling()
+
+```
+From the correlation matrix above we see  that roi is, sadly not, significantly correlated to any of the variables we have in our database so therefore we cannot explain the roi that some of .
 
 

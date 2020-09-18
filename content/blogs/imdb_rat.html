@@ -11,6 +11,8 @@ categories:
 - ''
 ---
 
+<script src="/rmarkdown-libs/kePrint/kePrint.js"></script>
+<link href="/rmarkdown-libs/lightable/lightable.css" rel="stylesheet" />
 
 
 <div id="imdb-ratings-a-primer" class="section level3">
@@ -46,6 +48,528 @@ As we can see the <code>movies</code> is a tibble with 2,961 rows and 11 columns
 <li><code>cast_facebook_likes</code> is the number of facebook likes of movie</li>
 </ul>
 </ul>
+<p>I will quickly check the data to see if there are any missing values as those can negatively impact our conclusions.</p>
+<pre class="r"><code>#skimming dataset 
+skim(movies)</code></pre>
+<table style='width: auto;'
+        class='table table-condensed'>
+<caption>
+<span id="tab:unnamed-chunk-3">Table 1: </span>Data summary
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:left;">
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Name
+</td>
+<td style="text-align:left;">
+movies
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Number of rows
+</td>
+<td style="text-align:left;">
+2961
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Number of columns
+</td>
+<td style="text-align:left;">
+11
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+_______________________
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Column type frequency:
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+8
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+________________________
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Group variables
+</td>
+<td style="text-align:left;">
+None
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">
+skim_variable
+</th>
+<th style="text-align:right;">
+n_missing
+</th>
+<th style="text-align:right;">
+complete_rate
+</th>
+<th style="text-align:right;">
+min
+</th>
+<th style="text-align:right;">
+max
+</th>
+<th style="text-align:right;">
+empty
+</th>
+<th style="text-align:right;">
+n_unique
+</th>
+<th style="text-align:right;">
+whitespace
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+title
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+83
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2907
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+genre
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+director
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+32
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1366
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">
+skim_variable
+</th>
+<th style="text-align:right;">
+n_missing
+</th>
+<th style="text-align:right;">
+complete_rate
+</th>
+<th style="text-align:right;">
+mean
+</th>
+<th style="text-align:right;">
+sd
+</th>
+<th style="text-align:right;">
+p0
+</th>
+<th style="text-align:right;">
+p25
+</th>
+<th style="text-align:right;">
+p50
+</th>
+<th style="text-align:right;">
+p75
+</th>
+<th style="text-align:right;">
+p100
+</th>
+<th style="text-align:left;">
+hist
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+year
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+2002.90
+</td>
+<td style="text-align:right;">
+9.95
+</td>
+<td style="text-align:right;">
+1920.0
+</td>
+<td style="text-align:right;">
+1999.0
+</td>
+<td style="text-align:right;">
+2004.0
+</td>
+<td style="text-align:right;">
+2010.0
+</td>
+<td style="text-align:right;">
+2016.0
+</td>
+<td style="text-align:left;">
+&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2582&gt;&lt;U+2587&gt;
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+duration
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+109.65
+</td>
+<td style="text-align:right;">
+22.17
+</td>
+<td style="text-align:right;">
+37.0
+</td>
+<td style="text-align:right;">
+95.0
+</td>
+<td style="text-align:right;">
+106.0
+</td>
+<td style="text-align:right;">
+119.0
+</td>
+<td style="text-align:right;">
+330.0
+</td>
+<td style="text-align:left;">
+&lt;U+2583&gt;&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+gross
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+58090400.90
+</td>
+<td style="text-align:right;">
+72469621.94
+</td>
+<td style="text-align:right;">
+703.0
+</td>
+<td style="text-align:right;">
+12276810.0
+</td>
+<td style="text-align:right;">
+34703228.0
+</td>
+<td style="text-align:right;">
+75590286.0
+</td>
+<td style="text-align:right;">
+760505847.0
+</td>
+<td style="text-align:left;">
+&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+budget
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+40619384.06
+</td>
+<td style="text-align:right;">
+43682007.78
+</td>
+<td style="text-align:right;">
+218.0
+</td>
+<td style="text-align:right;">
+11000000.0
+</td>
+<td style="text-align:right;">
+26000000.0
+</td>
+<td style="text-align:right;">
+55000000.0
+</td>
+<td style="text-align:right;">
+300000000.0
+</td>
+<td style="text-align:left;">
+&lt;U+2587&gt;&lt;U+2582&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+cast_facebook_likes
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+12393.76
+</td>
+<td style="text-align:right;">
+20530.11
+</td>
+<td style="text-align:right;">
+0.0
+</td>
+<td style="text-align:right;">
+2241.0
+</td>
+<td style="text-align:right;">
+4604.0
+</td>
+<td style="text-align:right;">
+16926.0
+</td>
+<td style="text-align:right;">
+656730.0
+</td>
+<td style="text-align:left;">
+&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+votes
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+109307.49
+</td>
+<td style="text-align:right;">
+158143.91
+</td>
+<td style="text-align:right;">
+5.0
+</td>
+<td style="text-align:right;">
+19918.0
+</td>
+<td style="text-align:right;">
+55749.0
+</td>
+<td style="text-align:right;">
+133348.0
+</td>
+<td style="text-align:right;">
+1689764.0
+</td>
+<td style="text-align:left;">
+&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+reviews
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+503.31
+</td>
+<td style="text-align:right;">
+493.74
+</td>
+<td style="text-align:right;">
+2.0
+</td>
+<td style="text-align:right;">
+199.0
+</td>
+<td style="text-align:right;">
+364.0
+</td>
+<td style="text-align:right;">
+631.0
+</td>
+<td style="text-align:right;">
+5312.0
+</td>
+<td style="text-align:left;">
+&lt;U+2587&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2581&gt;
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+rating
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6.39
+</td>
+<td style="text-align:right;">
+1.05
+</td>
+<td style="text-align:right;">
+1.6
+</td>
+<td style="text-align:right;">
+5.8
+</td>
+<td style="text-align:right;">
+6.5
+</td>
+<td style="text-align:right;">
+7.1
+</td>
+<td style="text-align:right;">
+9.3
+</td>
+<td style="text-align:left;">
+&lt;U+2581&gt;&lt;U+2581&gt;&lt;U+2586&gt;&lt;U+2587&gt;&lt;U+2581&gt;
+</td>
+</tr>
+</tbody>
+</table>
+<p>As you can see we see not missing values for any variable.</p>
 </div>
 <div id="box-office-gross--what-makes-a-high-grossing-movie" class="section level3">
 <h3>Box office Gross- What makes a high grossing movie?</h3>
@@ -93,7 +617,7 @@ movies %&gt;%
         
         
         )</code></pre>
-<p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-3-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-4-1.png" width="1056" style="display: block; margin: auto;" /></p>
 <p>We get a highly right skewed distribution with very few movies making more than 200mn and average movie, in terms of both median and mean, making below even 100mn. So why do some movies make so much more than others?</p>
 <p>We all know the saying that to make you need to spend money, let’s see if that applies to the movie industry. We can plot the box office budget with the gross to see if there is any correlation.</p>
 <pre class="r"><code>#calculating correlation 
@@ -133,7 +657,7 @@ movies %&gt;%
   ##adding correlation 
     geom_text(aes(x = max(budget/1e6)-50 , y =100),label = paste0(&#39;Correlation: &#39; , round(corr,2)),
     color = &#39;#C7C8CF&#39; ,)</code></pre>
-<p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-4-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-5-1.png" width="1056" style="display: block; margin: auto;" /></p>
 <p>Although not strong we do see some positive correlation between budget and box office returns. But to get get a clearer picture let’s divide the budget into three categories: high, low, and medium and see which category has those big blockbusters.</p>
 <pre class="r"><code>#defining three catergoes
 #low is &lt;50 medium is 51-150 and high is 150+
@@ -168,17 +692,18 @@ movies %&gt;%
         panel.background = element_rect(fill = &#39;#2B304A&#39;, color = &#39;#2B304A&#39;) ,
         axis.ticks = element_line(color = &#39;#C7C8CF&#39;),
 )</code></pre>
-<p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-5-1.png" width="1056" style="display: block; margin: auto;" />
+<p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-6-1.png" width="1056" style="display: block; margin: auto;" />
 We see that the distribution of box office gross significantly varies between the low and high budget categories,so this indicates that spending money on making your movie lets you make those extra dollars at the box office. However, another metric, potentially a more important one, is actually looking at the return on investment, so lets create a variable called <code>roi</code> defined as % return on the budget.</p>
-<pre class="r"><code>movies %&gt;% 
+<pre class="r"><code>movies &lt;- movies %&gt;% 
   mutate(roi = round(((gross - budget)/budget)*100 , 2)) %&gt;%
   mutate(budget_cat = case_when(
     budget &lt; 5e7 ~ &#39;Low&#39;,
     budget &gt;= 5e7 &amp; budget &lt; 1.5e8 ~ &#39;Medium&#39; ,
     budget &gt;= 1.5e8 ~ &#39;High&#39;
     
-  ))%&gt;%
-   ggplot(aes( x = budget_cat , y= roi)) +
+  ))
+
+   movies %&gt;% ggplot(aes( x = budget_cat , y= roi)) +
   geom_boxplot( color =  &#39;#F9F871&#39;  , fill =  &#39;#EA8272&#39;) + 
   
     #adding titles and other theme componenets 
@@ -202,6 +727,442 @@ We see that the distribution of box office gross significantly varies between th
         panel.background = element_rect(fill = &#39;#2B304A&#39;, color = &#39;#2B304A&#39;) ,
         axis.ticks = element_line(color = &#39;#C7C8CF&#39;),
 )</code></pre>
-<p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-6-1.png" width="1056" style="display: block; margin: auto;" /></p>
-<p>Now we see that the picture changes completely and the high budget movies don’t see me to be as lucrative any more. The mean ROI of the low budget category is not the highest but there still seems to significant overlap between the high and low budget categories.</p>
+<p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-7-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p>Now we see that the picture changes completely and the high budget movies don’t see me to be as lucrative any more. The mean ROI of the low budget category is not the highest but there still seems to significant overlap between the high and low budget categories. So we will need to come up with a more statistically robust approach.</p>
+<div id="hypothesis-test-do-low-budget-movies-have-a-higher-return-on-investment" class="section level4">
+<h4>Hypothesis Test: Do low budget movies have a higher return on investment?</h4>
+<p>I will now use the dataset to truly answer the question of whether it is worth investing in a big blockbuster or should you just spend your money on low budget movies and maximize the return on investment. I will use two methods a t test and bootstrapping to answer this question. I will answer this question by determining if the ROI of lower budget movies is much higher.
+We will start with the null hypothesis <em>that the mean return on investment across both the categories is the same</em>.</p>
+<div id="t-test-using-t.test" class="section level5">
+<h5>T test using t.test()</h5>
+<pre class="r"><code>#calcuating the summary statistics form 
+# favstats(roi ~ budget_cat, data = movies) %&gt;%
+#   rename(&#39;Budget Category&#39; = budget_cat) %&gt;%
+#   kbl() %&gt;%
+#   kable_styling()
+
+ movies %&gt;% 
+  group_by(budget_cat)%&gt;%
+  summarise(mean       = mean(roi,na.rm=TRUE), 
+            sd         = sd(roi,na.rm=TRUE), 
+            sample_size= n(),
+            t_crit     = abs(qt(0.05/2, sample_size-1)),
+            se         = sd/sqrt(sample_size),  #two-sided
+            low_ci     = mean- t_crit*se, 
+            hi_ci      = mean+ t_crit*se,
+            Median = median(roi ,na.rm = TRUE)) %&gt;%
+  rename(&#39;Mean&#39; = &#39;mean&#39; , &#39;Standard Deviation&#39; = sd , &#39;Sample Size&#39; = sample_size,
+         &#39;T Value&#39; = t_crit, &#39;Standard Error&#39; = se , &#39;Upper Confidence Interval&#39; = hi_ci , 
+         &#39;Lower Confidence Interval&#39; = low_ci ) %&gt;% 
+ kbl(caption = &#39;Summary Statyistics for each Category&#39;) %&gt;%
+    kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-8">Table 2: </span>Summary Statyistics for each Category
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+budget_cat
+</th>
+<th style="text-align:right;">
+Mean
+</th>
+<th style="text-align:right;">
+Standard Deviation
+</th>
+<th style="text-align:right;">
+Sample Size
+</th>
+<th style="text-align:right;">
+T Value
+</th>
+<th style="text-align:right;">
+Standard Error
+</th>
+<th style="text-align:right;">
+Lower Confidence Interval
+</th>
+<th style="text-align:right;">
+Upper Confidence Interval
+</th>
+<th style="text-align:right;">
+Median
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+High
+</td>
+<td style="text-align:right;">
+15.7
+</td>
+<td style="text-align:right;">
+70.9
+</td>
+<td style="text-align:right;">
+130
+</td>
+<td style="text-align:right;">
+1.98
+</td>
+<td style="text-align:right;">
+6.22
+</td>
+<td style="text-align:right;">
+3.44
+</td>
+<td style="text-align:right;">
+28.1
+</td>
+<td style="text-align:right;">
+7.880
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Low
+</td>
+<td style="text-align:right;">
+923.7
+</td>
+<td style="text-align:right;">
+17650.1
+</td>
+<td style="text-align:right;">
+2095
+</td>
+<td style="text-align:right;">
+1.96
+</td>
+<td style="text-align:right;">
+385.62
+</td>
+<td style="text-align:right;">
+167.44
+</td>
+<td style="text-align:right;">
+1679.9
+</td>
+<td style="text-align:right;">
+38.680
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Medium
+</td>
+<td style="text-align:right;">
+21.1
+</td>
+<td style="text-align:right;">
+89.4
+</td>
+<td style="text-align:right;">
+736
+</td>
+<td style="text-align:right;">
+1.96
+</td>
+<td style="text-align:right;">
+3.30
+</td>
+<td style="text-align:right;">
+14.60
+</td>
+<td style="text-align:right;">
+27.5
+</td>
+<td style="text-align:right;">
+0.385
+</td>
+</tr>
+</tbody>
+</table>
+<p>We, actually see no overlap in confidence intervals of the ROI High budget Category and Low Budget and can thus disapprove the null hypothesis as the Low budget category provides significantly better returns. However I would like to note that there is a significant difference between the mean and median of the low budget category which signals the presence of major outliers. This makes sense as, every year there a few moives that are surprise</p>
+<pre class="r"><code>movies %&gt;%
+  filter(budget_cat == &#39;Low&#39;) %&gt;%
+  ggplot()+
+  geom_density(aes(roi) ,  color =  &#39;#F9F871&#39;  , fill =  &#39;#EA8272&#39;, alpha = 0.7) + 
+  
+     #adding titles and other theme componenets 
+  labs(y = &#39;Count \n&#39;,
+       x = &#39;\n ROI&#39;,
+       title = &#39; &#39; ,
+       subtitle = &#39; Distribution of Return on Investment&#39;) +
+  scale_colour_solarized(&quot;blue&quot;)+
+ scale_x_log10() + 
+  #limiting the y axis to avoid shrinking y axis due to out liers
+  #matching the graph to the theme
+  theme(
+        plot.background = element_rect(fill = &#39;#2B304A&#39;, colour =&#39;#2B304A&#39; ),
+        axis.title = element_text(color = &#39;#C7C8CF&#39; , face = &#39;bold&#39; ), 
+        axis.text =  element_text(color = &#39;#C7C8CF&#39; , face = &#39;bold&#39;) ,
+        panel.grid = element_blank() ,
+        panel.border = element_blank(),
+        plot.title = element_text(color = &#39;#C7C8CF&#39; , face = &#39;bold&#39;),
+        plot.subtitle = element_text(color = &#39;#C7C8CF&#39; , face = &#39;bold&#39;),
+        panel.background = element_rect(fill = &#39;#2B304A&#39;, color = &#39;#2B304A&#39;) ,
+        axis.ticks = element_line(color = &#39;#C7C8CF&#39;),
+)</code></pre>
+<p><img src="/blogs/imdb_rat_files/figure-html/unnamed-chunk-9-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>movies %&gt;%
+  filter(budget_cat == &#39;Low&#39;) %&gt;%
+  select(title, gross, budget, roi) %&gt;%
+  arrange(desc(roi))%&gt;% 
+  top_n(5) %&gt;%
+ kbl(caption = &#39;Top 5 movies by ROI&#39;) %&gt;%
+    kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-9">Table 3: </span>Top 5 movies by ROI
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+title
+</th>
+<th style="text-align:right;">
+gross
+</th>
+<th style="text-align:right;">
+budget
+</th>
+<th style="text-align:right;">
+roi
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Paranormal Activity
+</td>
+<td style="text-align:right;">
+107917283
+</td>
+<td style="text-align:right;">
+15000
+</td>
+<td style="text-align:right;">
+719349
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tarnation
+</td>
+<td style="text-align:right;">
+592014
+</td>
+<td style="text-align:right;">
+218
+</td>
+<td style="text-align:right;">
+271466
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+The Blair Witch Project
+</td>
+<td style="text-align:right;">
+140530114
+</td>
+<td style="text-align:right;">
+60000
+</td>
+<td style="text-align:right;">
+234117
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+The Brothers McMullen
+</td>
+<td style="text-align:right;">
+10246600
+</td>
+<td style="text-align:right;">
+25000
+</td>
+<td style="text-align:right;">
+40886
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+The Texas Chain Saw Massacre
+</td>
+<td style="text-align:right;">
+30859000
+</td>
+<td style="text-align:right;">
+83532
+</td>
+<td style="text-align:right;">
+36843
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+The Texas Chain Saw Massacre
+</td>
+<td style="text-align:right;">
+30859000
+</td>
+<td style="text-align:right;">
+83532
+</td>
+<td style="text-align:right;">
+36843
+</td>
+</tr>
+</tbody>
+</table>
+<p>I plotted a density plot to confirm the presence of outliers in the low budget category. Here we see ROIs going upto 100 000% and the table also shows a few of these outstanding movies. Paranormal Activity was able to gross over 100mn with only a budget of 15,000 USD, that is just amazing. Is there something special about these movies that enabled them to get such high Return on Investment.</p>
+<pre class="r"><code># Quick display of two cabapilities of GGally, to assess the distribution and correlation of variables 
+library(GGally)
+library(corrplot)
+
+
+movies %&gt;%
+  filter(budget_cat == &#39;Low&#39;) %&gt;%
+  select(c(roi , reviews, votes, cast_facebook_likes, rating)) %&gt;%
+  cor( method = &quot;pearson&quot;,) %&gt;%
+ kbl(caption = &#39;Correlation Matrix &#39;) %&gt;%
+    kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-10">Table 4: </span>Correlation Matrix
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+roi
+</th>
+<th style="text-align:right;">
+reviews
+</th>
+<th style="text-align:right;">
+votes
+</th>
+<th style="text-align:right;">
+cast_facebook_likes
+</th>
+<th style="text-align:right;">
+rating
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+roi
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+<td style="text-align:right;">
+0.126
+</td>
+<td style="text-align:right;">
+0.024
+</td>
+<td style="text-align:right;">
+-0.020
+</td>
+<td style="text-align:right;">
+0.015
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+reviews
+</td>
+<td style="text-align:right;">
+0.126
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+<td style="text-align:right;">
+0.761
+</td>
+<td style="text-align:right;">
+0.133
+</td>
+<td style="text-align:right;">
+0.386
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+votes
+</td>
+<td style="text-align:right;">
+0.024
+</td>
+<td style="text-align:right;">
+0.761
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+<td style="text-align:right;">
+0.171
+</td>
+<td style="text-align:right;">
+0.488
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+cast_facebook_likes
+</td>
+<td style="text-align:right;">
+-0.020
+</td>
+<td style="text-align:right;">
+0.133
+</td>
+<td style="text-align:right;">
+0.171
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+<td style="text-align:right;">
+0.108
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+rating
+</td>
+<td style="text-align:right;">
+0.015
+</td>
+<td style="text-align:right;">
+0.386
+</td>
+<td style="text-align:right;">
+0.488
+</td>
+<td style="text-align:right;">
+0.108
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+</tbody>
+</table>
+<p>From the correlation matrix above we see that roi is, sadly not, significantly correlated to any of the variables we have in our database so therefore we cannot explain the roi that some of .</p>
+</div>
+</div>
 </div>
