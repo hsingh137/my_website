@@ -1,0 +1,408 @@
+<!DOCTYPE HTML>
+<html>
+
+    <head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<meta name="description" content="A site detailing my portfolio of Work.">
+	<meta name="author" content="Himanshu Singh_aesefasiljdfbaweojg">
+	<meta name="generator" content="Hugo 0.74.3" />
+	<title>GDP Growth and Climate Change &middot; Portfolio website for Himanshu Singh</title>
+	<!-- Stylesheets -->
+	
+	<link rel="stylesheet" href="/css/main.css"/>
+	
+	
+
+	
+
+	<!-- Custom Fonts -->
+	<link href="/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+	
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	
+
+	<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+	<!--[if lt IE 9]>
+	<script src="js/ie/html5shiv.js"></script>
+	<script src="js/ie/html5shiv.jsrespond.min.js"></script>
+	<![endif]-->
+</head>
+
+    <body>
+
+    <!-- Wrapper -->
+        <div id="wrapper">
+
+            <!-- Header -->
+    <header id="header" class="alt">
+        <a href="/" class="logo"><strong>Himanshu Singh</strong> <span></span></a>
+        <nav>
+            <a href="#menu">Menu</a>
+        </nav>
+    </header>
+
+<!-- Menu -->
+    <nav id="menu">
+        <ul class="links">
+            
+                <li><a href="/">Home</a></li>
+            
+                <li><a href="/blogs">projects</a></li>
+            
+
+        </ul>
+        <ul class="actions vertical">
+            
+                <li><a href="/blogs/gapm" class="button special fit">Get Started</a></li>
+            
+            
+        </ul>
+    </nav>
+
+        <!-- Main -->
+            <div id="main" class="alt">
+
+                
+                    <section id="one">
+                        <div class="inner">
+                            <header class="major">
+                                <h1>GDP Growth and Climate Change</h1>
+                            </header>
+                            
+                                <span class="image main"><img src="/img/blogs/logo.png" alt="" /></span>
+                            
+                            
+<script src="/rmarkdown-libs/kePrint/kePrint.js"></script>
+<link href="/rmarkdown-libs/lightable/lightable.css" rel="stylesheet" />
+
+
+<div id="intro" class="section level3">
+<h3>Intro:</h3>
+</div>
+<div id="the-data" class="section level3">
+<h3>The Data</h3>
+<pre class="r"><code>gapminder</code></pre>
+<pre><code>## # A tibble: 1,704 x 6
+##    country     continent  year lifeExp      pop gdpPercap
+##    &lt;fct&gt;       &lt;fct&gt;     &lt;int&gt;   &lt;dbl&gt;    &lt;int&gt;     &lt;dbl&gt;
+##  1 Afghanistan Asia       1952    28.8  8425333      779.
+##  2 Afghanistan Asia       1957    30.3  9240934      821.
+##  3 Afghanistan Asia       1962    32.0 10267083      853.
+##  4 Afghanistan Asia       1967    34.0 11537966      836.
+##  5 Afghanistan Asia       1972    36.1 13079460      740.
+##  6 Afghanistan Asia       1977    38.4 14880372      786.
+##  7 Afghanistan Asia       1982    39.9 12881816      978.
+##  8 Afghanistan Asia       1987    40.8 13867957      852.
+##  9 Afghanistan Asia       1992    41.7 16317921      649.
+## 10 Afghanistan Asia       1997    41.8 22227415      635.
+## # ... with 1,694 more rows</code></pre>
+I am going to be using two datasets for our analysis: the <code>gapminder</code> and the <code>weather</code> dataset. The <code>gapminder</code> dataset is can be imported as a library with r and provides details of a country’s life expectancy, GDP etc. But the columns I am interested in are:
+<ol>
+1.<code>Country</code> : name of the country<br />
+2.<code>gdpPercap</code> : gdp per captia of a given country
+3.<code>year</code> : Year of the data
+4.<code>pop</code> : Population of the country
+</ol>
+<pre class="r"><code>weather &lt;- read_csv(&quot;https://data.giss.nasa.gov/gistemp/tabledata_v3/NH.Ts+dSST.csv&quot;, 
+           skip = 1, 
+           na = &quot;***&quot;)
+
+glimpse(weather)</code></pre>
+<pre><code>## Rows: 140
+## Columns: 19
+## $ Year  &lt;dbl&gt; 1880, 1881, 1882, 1883, 1884, 1885, 1886, 1887, 1888, 1889, 1...
+## $ Jan   &lt;dbl&gt; -0.54, -0.19, 0.22, -0.59, -0.23, -1.00, -0.68, -1.07, -0.53,...
+## $ Feb   &lt;dbl&gt; -0.38, -0.25, 0.22, -0.67, -0.11, -0.37, -0.68, -0.58, -0.59,...
+## $ Mar   &lt;dbl&gt; -0.26, 0.02, 0.00, -0.16, -0.65, -0.21, -0.57, -0.36, -0.58, ...
+## $ Apr   &lt;dbl&gt; -0.37, -0.02, -0.36, -0.27, -0.62, -0.53, -0.34, -0.42, -0.24...
+## $ May   &lt;dbl&gt; -0.11, -0.06, -0.32, -0.32, -0.42, -0.55, -0.34, -0.27, -0.16...
+## $ Jun   &lt;dbl&gt; -0.22, -0.36, -0.38, -0.26, -0.52, -0.47, -0.43, -0.20, -0.04...
+## $ Jul   &lt;dbl&gt; -0.23, -0.06, -0.37, -0.09, -0.48, -0.39, -0.20, -0.23, 0.04,...
+## $ Aug   &lt;dbl&gt; -0.24, -0.03, -0.14, -0.26, -0.50, -0.44, -0.47, -0.52, -0.19...
+## $ Sep   &lt;dbl&gt; -0.26, -0.23, -0.17, -0.33, -0.45, -0.32, -0.34, -0.17, -0.12...
+## $ Oct   &lt;dbl&gt; -0.32, -0.40, -0.53, -0.21, -0.41, -0.30, -0.31, -0.40, 0.04,...
+## $ Nov   &lt;dbl&gt; -0.37, -0.42, -0.32, -0.40, -0.48, -0.28, -0.45, -0.19, -0.03...
+## $ Dec   &lt;dbl&gt; -0.48, -0.28, -0.42, -0.25, -0.40, 0.00, -0.17, -0.43, -0.26,...
+## $ `J-D` &lt;dbl&gt; -0.32, -0.19, -0.21, -0.32, -0.44, -0.40, -0.42, -0.40, -0.22...
+## $ `D-N` &lt;dbl&gt; NA, -0.21, -0.20, -0.33, -0.43, -0.44, -0.40, -0.38, -0.24, -...
+## $ DJF   &lt;dbl&gt; NA, -0.31, 0.06, -0.56, -0.20, -0.59, -0.45, -0.61, -0.52, -0...
+## $ MAM   &lt;dbl&gt; -0.24, -0.02, -0.22, -0.25, -0.56, -0.43, -0.42, -0.35, -0.33...
+## $ JJA   &lt;dbl&gt; -0.23, -0.15, -0.30, -0.20, -0.50, -0.44, -0.37, -0.32, -0.06...
+## $ SON   &lt;dbl&gt; -0.32, -0.35, -0.34, -0.32, -0.44, -0.30, -0.37, -0.25, -0.04...</code></pre>
+<p>The above weather dataset we imported has the monthly temperature deviatons from the expected temperature betweeen the years 1880 and 2019.</p>
+</div>
+<div id="data-cleaning-and-wrangling" class="section level3">
+<h3>Data Cleaning and Wrangling</h3>
+<pre class="r"><code>#skim(weather)
+#skim(gapminder)</code></pre>
+<p>A quick skim of the datasets reveals no missing datapoints in either.
+For this analysis I will need to combine the two datasets. I will use the <code>year</code> column to do so and then afterwards we can check for any missing values that form as a reuslt of the merging.</p>
+<pre class="r"><code>#grouping the weather data by year and calclulating averages 
+
+weather &lt;- weather %&gt;%
+  pivot_longer(cols = 2:13 , names_to = &#39;Month&#39; , values_to = &#39;Delta&#39;) %&gt;%
+  group_by(Year) %&gt;%
+  summarise(mean_delta = mean(Delta) , median_delta = median(Delta)) %&gt;%
+  rename(&#39;year&#39; = &#39;Year&#39;)
+
+
+weather %&gt;% 
+  pivot_longer(cols = c(mean_delta , median_delta) , names_to = &#39;type&#39; , values_to = &#39;avg&#39;) %&gt;%
+  filter(is.na(avg) == FALSE) %&gt;% 
+  ggplot() +
+  geom_point(aes(x = year, y = avg, color = type)) + 
+  theme_cust +
+  scale_x_continuous(expand = c(0,0))+
+  labs(y= &#39;Temeperature Delta&#39; , 
+       color = &#39;Avearge Type&#39;)  </code></pre>
+<p><img src="/blogs/gapm_files/figure-html/unnamed-chunk-4-1.png" width="1056" style="display: block; margin: auto;" />
+I grouped the weather data by year and found the average delta for each year. We can clearly see that the temperatures have been <strong>increasing</strong> from the start of last century. Also quick note on the data, the expected temperatures are actually calculated from the temperatures around 1950-1980, this is why we see a the curve flattening around that time.</p>
+<p>Now the two datasets are ready to join. And I will also add a <code>tot_gdp</code> column which will simply be <code>gdpPercap</code> times the <code>pop</code>.</p>
+<pre class="r"><code># joining the two datasets
+df_joined &lt;- gapminder %&gt;%
+  left_join( weather  , by = &#39;year&#39;) %&gt;%
+##addinng  a total GDP colum 
+  mutate(tot_gdp = gdpPercap*pop)
+
+df_joined</code></pre>
+<pre><code>## # A tibble: 1,704 x 9
+##    country continent  year lifeExp    pop gdpPercap mean_delta median_delta
+##    &lt;fct&gt;   &lt;fct&gt;     &lt;dbl&gt;   &lt;dbl&gt;  &lt;int&gt;     &lt;dbl&gt;      &lt;dbl&gt;        &lt;dbl&gt;
+##  1 Afghan~ Asia       1952    28.8 8.43e6      779.     0.0508        0.135
+##  2 Afghan~ Asia       1957    30.3 9.24e6      821.     0.0425        0.095
+##  3 Afghan~ Asia       1962    32.0 1.03e7      853.     0.158         0.145
+##  4 Afghan~ Asia       1967    34.0 1.15e7      836.     0.0317        0.055
+##  5 Afghan~ Asia       1972    36.1 1.31e7      740.    -0.182        -0.11 
+##  6 Afghan~ Asia       1977    38.4 1.49e7      786.     0.112         0.12 
+##  7 Afghan~ Asia       1982    39.9 1.29e7      978.     0.0542        0.05 
+##  8 Afghan~ Asia       1987    40.8 1.39e7      852.     0.26          0.25 
+##  9 Afghan~ Asia       1992    41.7 1.63e7      649.     0.123         0.07 
+## 10 Afghan~ Asia       1997    41.8 2.22e7      635.     0.532         0.525
+## # ... with 1,694 more rows, and 1 more variable: tot_gdp &lt;dbl&gt;</code></pre>
+</div>
+<div id="data-visualization-and-exploration" class="section level3">
+<h3>Data Visualization and Exploration</h3>
+<p>Now that we have the data ready and joined we can make some cool visualizations. First thing I am curious about is, how has the world economy performed and also how has the economic table has changed in the last half a century.</p>
+<pre class="r"><code>#finding the gdp per cap for 1952 and 2007
+df_p &lt;- df_joined %&gt;% 
+  group_by(continent, country , tot_gdp)%&gt;%
+  filter(year == 1952 | year == 2007) %&gt;%
+  pivot_wider(id_cols = c(1, 2, ) , names_from = year, values_from = gdpPercap)
+
+
+#adding an extra column with the total size of the gdp
+df_p$tot_2007 &lt;-  filter(df_joined , year == 2007)$tot_gdp
+
+
+df_p %&gt;%
+  pivot_longer(cols = c(`1952`,`2007`) , names_to = &#39;Year&#39; , values_to = &quot;gdppercap&quot;) %&gt;%
+  ggplot() +
+  geom_density(aes(gdppercap , fill = Year))+
+  scale_y_continuous(expand= c(0,0))+ 
+  scale_x_log10(expand= c(0,0))+ 
+  labs(x = &#39;Gdp Per Captia&#39; , y = &#39;Density&#39;)+
+  theme_cust </code></pre>
+<p><img src="/blogs/gapm_files/figure-html/growth%20overveiw-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p>Comparing distributions between the gpd per cap in 1952 vs gdp per cap in 2007, You can clearly see that there has been a significant changes in GDP per captia meaning that a lot of economies have grown and grown significantly. Now lets look at how the economy table has changed through out the years.</p>
+<pre class="r"><code>#parrallel category chart 
+df_p1 &lt;- df_joined %&gt;% 
+  group_by(continent, country , tot_gdp)%&gt;%
+  filter(year == 1952 | year == 1972 |year == 1992| year == 2007) %&gt;%
+  pivot_wider(id_cols = c(1, 2,  ) , names_from = year, values_from = tot_gdp)
+
+
+
+# parrallel category plot 
+df_p1%&gt;%
+  arrange(desc(`2007`)) %&gt;%
+  head(n = 10) %&gt;%
+  ggparcoord(columns = 3:6, groupColumn = 1,
+             showPoints = TRUE,
+              alphaLines = 0.3,
+             scale=&quot;globalminmax&quot;,) +
+  
+  theme_cust + 
+  labs( y = &#39;Total GDP (USD)&#39;, 
+        x= &#39;Year&#39; ) +
+   scale_y_log10(labels = unit_format(unit = &quot;B&quot;, scale = 1e-9))</code></pre>
+<p><img src="/blogs/gapm_files/figure-html/unnamed-chunk-6-1.png" width="1056" style="display: block; margin: auto;" />
+Some economies have grown faster than others and at different times. We see the big asian economies like china and india have recently expanded while the developed economies expanded a few decades earlier. Also an interesting thing to note is how USA has lost it significant size advantage in the last couple of decades.</p>
+<p><strong>From the above graphs</strong> two things are clear, economies around the world have grown and the climate has gotten hotter.</p>
+</div>
+<div id="relationship-analysis" class="section level3">
+<h3>Relationship Analysis</h3>
+<p>Now we want to analyse the relationhship between the Economic Growth and Climate Change. We begin by looking at the world economic growth and temperature deviation by year.</p>
+<pre class="r"><code>corr &lt;- df_joined %&gt;% 
+  group_by(year) %&gt;%
+  summarize(economy = median(gdpPercap) , temp_delta = median(median_delta)) 
+
+
+stat_cor &lt;- cor(x = corr$economy, y = corr$temp_delta , method =&#39;pearson&#39; ,  use = &quot;complete.obs&quot;)
+
+corr %&gt;%
+  ggplot()+
+  geom_point(aes(x = economy, y = temp_delta ) , color = &#39;#EA8272&#39;) +
+  geom_smooth(aes(x = economy, y = temp_delta ),method = &#39;lm&#39; , color = &#39;#C7C8CF&#39; , se = FALSE) + 
+  geom_text(aes(5500, -0.2) , label = paste0(&#39;Correlation: &#39;,round(stat_cor, 2)) , color = &#39;#C7C8CF&#39; )+
+  scale_x_log10(expand = c(0,0))+
+  theme_cust + 
+  labs(x = &#39;Median GDP Per Captia&#39; , 
+       y = &#39;Temperature Deviation&#39; , 
+       title = &#39;As economes grow so does the temperature&#39; ,
+       subtitle =  &#39;Median GDP per captia  vs Median Temperature Deviation&#39; )</code></pre>
+<p><img src="/blogs/gapm_files/figure-html/unnamed-chunk-7-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p>We can see from the correlation number that there is an clear positive relationship between the median gdp per captia and the temperature deviation. Providing significant evidence that the world economy has grown at the expense of the climate getting hotter. If I also createa a linear model between the two variables we can really understand the relationship.</p>
+<pre class="r"><code># Fit regression model:
+score_model &lt;- lm( temp_delta ~ log10(economy), data = corr)
+# Get regression table:
+get_regression_table(score_model) %&gt;%
+  kbl(caption = &quot;Linear Model of gdp per captia and temperature deviation&quot;) %&gt;% 
+  kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-8">Table 1: </span>Linear Model of gdp per captia and temperature deviation
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+term
+</th>
+<th style="text-align:right;">
+estimate
+</th>
+<th style="text-align:right;">
+std_error
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p_value
+</th>
+<th style="text-align:right;">
+lower_ci
+</th>
+<th style="text-align:right;">
+upper_ci
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+intercept
+</td>
+<td style="text-align:right;">
+-3.52
+</td>
+<td style="text-align:right;">
+1.412
+</td>
+<td style="text-align:right;">
+-2.49
+</td>
+<td style="text-align:right;">
+0.032
+</td>
+<td style="text-align:right;">
+-6.665
+</td>
+<td style="text-align:right;">
+-0.371
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+log10(economy)
+</td>
+<td style="text-align:right;">
+1.05
+</td>
+<td style="text-align:right;">
+0.397
+</td>
+<td style="text-align:right;">
+2.65
+</td>
+<td style="text-align:right;">
+0.024
+</td>
+<td style="text-align:right;">
+0.169
+</td>
+<td style="text-align:right;">
+1.939
+</td>
+</tr>
+</tbody>
+</table>
+<p>Clearly gdp per captia has a significant impact on temperature deviation given from the t statistic of 2.65. The slope estimate of 1.05 also tells you that there is a positive relationship between the two variables i.e. as gdp per captia increases so the do the temperature deviations.</p>
+</div>
+<div id="conclusion" class="section level3">
+<h3>Conclusion</h3>
+<p>In this blog I conducted a very simple analysis between the increasing temperatures around the world and the economic growth we have experienced in the past century. Although the analysis could have been done in much more depth if the data had been their. One thing can be sure :
+&gt; The way we have been growing has been signifcantly leading to increasing temperatures.</p>
+<p>This will need to change and we will need to change the way our future econmic growth is fueled or the upcoming climate change crisis will not be avoidable.</p>
+</div>
+
+                        </div>
+                    </section>
+            <!-- Disqus Inject -->
+                
+            </div>
+            
+        <!-- Footer -->
+            
+                <!-- Footer -->
+    <footer id="footer">
+        <div class="inner">
+            <ul class="icons">
+                
+                    <li><a href="https://www.twitter.com" class="icon alt fa-twitter" target="_blank"><span class="label">Twitter</span></a></li>
+                
+                    <li><a href="https://www.facebook.com" class="icon alt fa-facebook" target="_blank"><span class="label">Facebook</span></a></li>
+                
+                    <li><a href="https://www.instagram.com" class="icon alt fa-instagram" target="_blank"><span class="label">Instagram</span></a></li>
+                
+                    <li><a href="https://www.github.com" class="icon alt fa-github" target="_blank"><span class="label">GitHub</span></a></li>
+                
+                    <li><a href="https://www.linkedin.com" class="icon alt fa-linkedin" target="_blank"><span class="label">LinkedIn</span></a></li>
+                
+            </ul>
+            <ul class="copyright">
+                <li>&copy; Company Name</li>
+                
+                <li>Design:  <a href="https://www.html5up.net">HTML5 UP</a></li>
+                
+            </ul>
+        </div>
+    </footer>
+
+            
+        </div>
+
+    <!-- Scripts -->
+        <!-- Scripts -->
+    <!-- jQuery -->
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery.scrolly.min.js"></script>
+    <script src="/js/jquery.scrollex.min.js"></script>
+    <script src="/js/skel.min.js"></script>
+    <script src="/js/util.js"></script>
+
+    
+
+    <!-- Main JS -->
+    <script src="/js/main.js"></script>
+
+    
+
+    
+
+    </body>
+</html>

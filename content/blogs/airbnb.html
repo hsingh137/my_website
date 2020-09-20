@@ -1,9 +1,9 @@
 ---
-title: 'AirBnB: Using Machine Learning to Predict Prices in Singapore'
+title: 'AirBnB: Using Machine Learning to Air BNBPredict Prices in Singapore'
 date: '2017-10-31T21:28:43-05:00'
 description: ''
 draft: no
-image: imdb.png
+image: singapore.jpg
 keywords: ''
 slug: airbnb
 categories:
@@ -11,6 +11,1128 @@ categories:
 - ''
 ---
 
+<script src="/rmarkdown-libs/kePrint/kePrint.js"></script>
+<link href="/rmarkdown-libs/lightable/lightable.css" rel="stylesheet" />
+
+
+<pre class="r"><code>#importing the raw data from insideairbnb.com 
+#used read_csv as vroom caused a column mismatch
+df_raw &lt;- read_csv(&quot;data/listings.csv&quot;)</code></pre>
+<p>In this report I will be analysing data about Airbnb listings in Singapore with the goal of building a model to predict the total cost for two people staying four nights in Singapore. The data is from <a href="">insideairbnb.com</a> which is an unofficial source that scapes data from AirBnb.</p>
+<div id="the-data" class="section level3">
+<h3>The Data</h3>
+<p>By taking a first look at the raw data available on the AirBnB listings in Singapore we see that the data frame is made up of 7323 observations (rows),With each row describing a particular listing, and 106 variables (columns). We see that certain variables are stored with the incorrect data type, specifically we have quantitative variables (eg. price, cleaning_fee, extra_people) incorrectly stored as character variables and will have to be converted into numeric data throughout the process. Similarly, the skim function suggests the presence of duplicates and missing values, which will have to be cleaned out.</p>
+<p>Even though there are many variables in the data frame, below is a brief description of some of the noteworthy variables collected, with cost data typically expressed in US$:</p>
+<ul>
+<li><code>price</code> = cost per night</li>
+<li><code>cleaning_fee</code>: cleaning fee</li>
+<li><code>extra_people</code>: charge for having more than 1 person</li>
+<li><code>property_type</code>: type of accommodation (House, Apartment, etc.)</li>
+<li><code>room_type</code>:
+<ul>
+<li>Entire home/apt (guests have entire place to themselves)</li>
+<li>Private room (Guests have private room to sleep, all other rooms shared)</li>
+<li>Shared room (Guests sleep in room shared with others)</li>
+</ul></li>
+<li><code>number_of_reviews</code>: Total number of reviews for the listing</li>
+<li><code>review_scores_rating</code>: Average review score (0 - 100)</li>
+<li><code>longitude, latitude</code>: geographical coordinates to help us locate the listing</li>
+<li><code>neighbourhood</code>: three variables on a few major neighbourhoods in each city</li>
+<li><code>square_feet</code>: size of the listing in square feet</li>
+<li><code>cancellation policy</code>: type of cancellation policy (flexible, moderate, strict)</li>
+<li><code>host_is_identified</code>: indicates if the host has been validated by airbnb (True or False)</li>
+<li><code>host_is_superhost</code>: if the host is experienced and has received consistently positive reviews</li>
+</ul>
+</div>
+<div id="data-cleaning-and-exploration" class="section level3">
+<h3>Data Cleaning and Exploration</h3>
+<p>Next, conscious of time constraints and with the aim of making the size of the data more manageable, we exclude from the data frame the variables that we deemed as not needed or unsuitable for the purpose of our study. For example, <code>square_feet</code> would have been an interesting variable for our analysis, however the skim revealed over 7000 missing values and mostly 0s among the remaining data points.</p>
+<p>I will conduct some cleaning such as removing duplicate listings, replacing some of the <code>NA</code> values</p>
+<pre class="r"><code>##selecting the needed variables 
+df_fil &lt;- df_raw %&gt;%
+  select(id,listing_url,
+         price, cleaning_fee , extra_people, property_type,  room_type,
+         number_of_reviews, review_scores_rating,  
+         latitude ,longitude , is_location_exact,
+         neighbourhood_cleansed , neighbourhood_group_cleansed, neighbourhood, 
+        host_identity_verified, host_is_superhost, accommodates,
+        cancellation_policy, minimum_nights, guests_included)
+
+
+# turn prices, cleaning_fee and extra people into a numeric column
+#and removing the &#39;$&#39; and &#39;,&#39;
+df_fil &lt;- transform(df_fil,price=as.numeric(sub(&quot;\\$&quot;,&quot;&quot;, sub(&quot;,&quot;,&quot;&quot;, price)),na.rm=TRUE),
+                cleaning_fee=as.numeric(sub(&quot;\\$&quot;,&quot;&quot;, sub(&quot;,&quot;,&quot;&quot;, cleaning_fee)),na.rm=TRUE),
+                extra_people=as.numeric(sub(&quot;\\$&quot;,&quot;&quot;, sub(&quot;,&quot;,&quot;&quot;, extra_people)),na.rm=TRUE))
 
 
 
+df_cleaned &lt;- df_fil%&gt;%
+#removing duplicate ids 
+ filter(duplicated(id) == FALSE) %&gt;%
+#removing listings with missing price
+  filter(is.na(price) == FALSE) %&gt;% 
+#creating a new column with NAs replaced with zeros for cleaning fee%
+  mutate(cleaning_fee_cleaned = 
+case_when(is.na(cleaning_fee) ~ 0,
+           TRUE ~ cleaning_fee))%&gt;%
+  
+#creating a new column with NAs replaced with zeros for extra people 
+  mutate(extra_people_clean = 
+case_when(is.na(extra_people) ~ 0,
+           TRUE ~ extra_people))
+
+#adjusting the property type column so they are in groups
+df_cleaned &lt;- df_cleaned %&gt;% 
+  mutate(prop_type_simplified = case_when( property_type %in% c(&quot;Apartment&quot;,&quot;Condominium&quot;, &quot;Serviced apartment&quot;,&quot;House&quot;, &quot;Hostel&quot;) ~ property_type, TRUE ~ &quot;Other&quot; ))
+
+
+df_final &lt;- df_cleaned %&gt;%
+#remove NAs
+  filter(is.na(host_is_superhost) == FALSE) %&gt;%
+#remove NAs
+  filter(is.na(host_identity_verified) == FALSE) %&gt;%
+#We remove NAs 
+  filter(is.na(review_scores_rating) == FALSE) %&gt;%
+#remove listings that do not require more than 4 nights 
+  filter(minimum_nights &lt; 5)  %&gt;% 
+  #removing unwanted columns from the data frame 
+  select(-c(cleaning_fee, property_type, extra_people)) %&gt;% 
+  #create a new column with tot price for 4 nights for 2 people per listing
+  mutate(extra_cost = as.numeric(guests_included &lt; 2)) %&gt;%
+  mutate(price_4_nights= price*4 +cleaning_fee_cleaned+extra_cost*extra_people_clean)
+
+
+#skimming final df
+#skim(df_final)</code></pre>
+<p>Running <code>skim</code> verfies that all the missing values have been removed and we after the cleaning process we end up with 2,444 rows and 23 columns, which is significantly less than what we originally had. I have commeneted out <code>skim</code> as not to use up too much space.</p>
+</div>
+<div id="data-exploration-and-visualizations" class="section level3">
+<h3>Data Exploration and Visualizations</h3>
+<p>First, we will plot the distributions for prices and <code>prices_4_nights</code>.</p>
+<pre class="r"><code>p2 &lt;- df_final %&gt;%
+  pivot_longer(cols = c(price, price_4_nights) ,names_to =&#39;Type&#39; , values_to = &#39;Price&#39; ) %&gt;%
+ggplot() +
+  geom_density( aes(x = Price ,  fill = Type , color = Type),alpha = 0.9 ,   ) +
+  labs(title = &quot;&quot;, 
+       subtitle = &quot;Distribution of the prices of AirBnBs in Singapore&quot;,
+        y = &#39;Density&#39; , x  = &#39;Price USD($)&#39;) +
+
+  geom_hline(aes(yintercept = 0), size = 1)+
+  scale_x_log10() +
+  theme_cust
+
+
+
+p4&lt;- df_final %&gt;%
+  group_by(neighbourhood_group_cleansed) %&gt;%
+  tally() %&gt;%
+  ggplot() +
+  geom_col( aes(x = reorder(neighbourhood_group_cleansed,n), y = n ) ,  fill = fill_pallete[3] , color = fill_pallete[1] ,alpha = 0.9) +
+  labs(title = &quot;Neighbourhoods in Central Regions \n have much higher listings&quot;, 
+       subtitle = &quot;Number of listings in each neighbourhood&quot;,
+        y = &#39;Count&#39; , x  = &#39;Neighbourhood&#39;) +
+  scale_y_discrete(expand = c(0,0))+
+  geom_hline(aes(yintercept = 0), size = 1)+
+theme_cust +
+  coord_flip()
+
+
+grid.arrange(p2,p4, nrow =2 )</code></pre>
+<p><img src="/blogs/airbnb_files/figure-html/unnamed-chunk-2-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p>From the chart above we see that <code>price</code> and <code>price_4_nights</code>, the price for two people staying in Singapore for four nights, are roughly normally distributed around their respective means of $154 and $646. <code>price_4_nights</code> as expected is much higher due to it being a combination of several variables including <code>price</code>, <code>cleaning_fee</code>, <code>extra_people</code>, and <code>guest_included</code>.
+As the neighbourhoods are numerous they have been grouped into 5 city areas for ease of analysis and minimizing the risk of overfitting. Here we see, as expected, that the central region has by far the most listings as it would be the most popular for tourists.</p>
+<p><img src="/blogs/airbnb_files/figure-html/unnamed-chunk-3-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p>From the graph above, we can see the relationship between the rating, number of reviews and the price of the listings. At first glance there is no clear-cut correlation, as we can see both expensive and affordable listings with both high and low ratings.
+Additionally, there is a significant cluster of listings that received a score between 80 and 100, independently of price, and we can assume that this is because the guests had chosen an AirBnB in the first place that is in line with their taste.</p>
+<p>Next, we use boxplots to explore <code>prop_type</code>,<code>neighbourhood_group_clensed</code> and its significance on <code>price_4_nights</code>.</p>
+<p><img src="/blogs/airbnb_files/figure-html/unnamed-chunk-4-1.png" width="1056" style="display: block; margin: auto;" /></p>
+<p>From the first box plot we see significant variation among the average AirBnB pricing for 4 nights across the different property types, suggesting that that property type is a strong predictor. Hence it can be inferred that the pricing is contingent upon the property type. For instance, a hostel accommodation falls under the lower price spectrum. We see a lesser variation across city areas, which might have been mitigated with the grouping of different neighborhoods.</p>
+</div>
+<div id="regression-analysis" class="section level1">
+<h1>Regression Analysis</h1>
+<p>We begin by omitting some variables that we will not be using in our regression analysis and converting character variables to factors. In this section, we fit linear models to predict the total cost for two people to stay at the AirBnB property for 4 nights, in other words, the <strong>price_4_nights</strong> variable. In the following subsections, we investigate the significance of various predictors for predicting this variable.</p>
+<pre class="r"><code>regression_data &lt;- df_final %&gt;% 
+  #deselecting variables not needed for the regression model
+  select(-c(id, listing_url, latitude, longitude, neighbourhood, price, cleaning_fee_cleaned, extra_people_clean, extra_cost,guests_included)) %&gt;%  
+  #converting categorical variables to factors
+  transform(room_type =as.factor(room_type),
+            neighbourhood_cleansed = as.factor(neighbourhood_cleansed),
+            neighbourhood_group_cleansed = as.factor(neighbourhood_group_cleansed),
+            cancellation_policy = as.factor(cancellation_policy),
+            prop_type_simplified = as.factor(prop_type_simplified))
+
+#viewing the data frame for the regression 
+glimpse(regression_data)</code></pre>
+<pre><code>## Rows: 2,444
+## Columns: 13
+## $ room_type                    &lt;fct&gt; Private room, Private room, Private ro...
+## $ number_of_reviews            &lt;dbl&gt; 29, 82, 29, 11, 69, 36, 1, 1, 40, 70, ...
+## $ review_scores_rating         &lt;dbl&gt; 82, 94, 92, 91, 94, 94, 100, 100, 96, ...
+## $ is_location_exact            &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, T...
+## $ neighbourhood_cleansed       &lt;fct&gt; Tampines, Serangoon, Jurong West, Buki...
+## $ neighbourhood_group_cleansed &lt;fct&gt; East Region, North-East Region, West R...
+## $ host_identity_verified       &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR...
+## $ host_is_superhost            &lt;lgl&gt; FALSE, FALSE, FALSE, FALSE, TRUE, FALS...
+## $ accommodates                 &lt;dbl&gt; 6, 2, 1, 2, 2, 2, 2, 6, 4, 2, 1, 1, 2,...
+## $ cancellation_policy          &lt;fct&gt; strict_14_with_grace_period, strict_14...
+## $ minimum_nights               &lt;dbl&gt; 1, 2, 2, 4, 2, 1, 3, 1, 2, 2, 1, 2, 1,...
+## $ prop_type_simplified         &lt;fct&gt; House, House, Condominium, Apartment, ...
+## $ price_4_nights               &lt;dbl&gt; 906, 264, 263, 1175, 660, 222, 552, 10...</code></pre>
+<div id="building-the-models" class="section level2">
+<h2>Building the models</h2>
+We first fit a linear model called <code>model1</code> using <code>prop_type_simplified</code>, <code>number_of_reviews</code>, and <code>review_scores_rating</code> and plot the output and summary statistics to evaluate the significance of these variables as predictors.
+The key metrics that we will be examining to evaluate the above are:
+<ol>
+<ol style="list-style-type: decimal">
+<li>R-squared adjusted: measurement of the extent of the variance of the outcome variable that is explained by the model.</li>
+<li>P Values: indicates whether the independent explanatory variable is significant to the model (when below 0.05 it can be deemed significant).</li>
+<li>T Stat: serves the same function as the P Value, suggesting whether the independent explanatory variable is significant to the model (when above 2 it can be deemed significant).</li>
+<li>Variance Inflation Factor (VIFs): enable us to check for multicollinearity in our model. Since these are not provided in the summary table for the model, we will be computing this with the <code>vif</code> function in the <code>car</code> package.</li>
+</ol>
+</ol>
+<pre class="r"><code>#Linear regression between price_4_night and prop_type_simplified, number_of_reviews, and review_scores_rating
+model1&lt;- lm(log(price_4_nights)~prop_type_simplified+number_of_reviews+ review_scores_rating,data=regression_data)
+#Look at model result
+glance(model1)%&gt;%
+  kbl()%&gt;%
+  kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+r.squared
+</th>
+<th style="text-align:right;">
+adj.r.squared
+</th>
+<th style="text-align:right;">
+sigma
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p.value
+</th>
+<th style="text-align:right;">
+df
+</th>
+<th style="text-align:right;">
+logLik
+</th>
+<th style="text-align:right;">
+AIC
+</th>
+<th style="text-align:right;">
+BIC
+</th>
+<th style="text-align:right;">
+deviance
+</th>
+<th style="text-align:right;">
+df.residual
+</th>
+<th style="text-align:right;">
+nobs
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0.162
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0.696
+</td>
+<td style="text-align:right;">
+67.4
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+-2577
+</td>
+<td style="text-align:right;">
+5172
+</td>
+<td style="text-align:right;">
+5224
+</td>
+<td style="text-align:right;">
+1179
+</td>
+<td style="text-align:right;">
+2436
+</td>
+<td style="text-align:right;">
+2444
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>#Look at result for each parameter.
+model1 %&gt;%
+  tidy()%&gt;%
+  kbl() %&gt;% 
+  kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+term
+</th>
+<th style="text-align:right;">
+estimate
+</th>
+<th style="text-align:right;">
+std.error
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p.value
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+(Intercept)
+</td>
+<td style="text-align:right;">
+5.802
+</td>
+<td style="text-align:right;">
+0.104
+</td>
+<td style="text-align:right;">
+55.59
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+prop_type_simplifiedCondominium
+</td>
+<td style="text-align:right;">
+0.209
+</td>
+<td style="text-align:right;">
+0.038
+</td>
+<td style="text-align:right;">
+5.45
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+prop_type_simplifiedHostel
+</td>
+<td style="text-align:right;">
+-0.735
+</td>
+<td style="text-align:right;">
+0.051
+</td>
+<td style="text-align:right;">
+-14.27
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+prop_type_simplifiedHouse
+</td>
+<td style="text-align:right;">
+-0.252
+</td>
+<td style="text-align:right;">
+0.053
+</td>
+<td style="text-align:right;">
+-4.73
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+prop_type_simplifiedOther
+</td>
+<td style="text-align:right;">
+0.087
+</td>
+<td style="text-align:right;">
+0.040
+</td>
+<td style="text-align:right;">
+2.16
+</td>
+<td style="text-align:right;">
+0.031
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+prop_type_simplifiedServiced apartment
+</td>
+<td style="text-align:right;">
+0.643
+</td>
+<td style="text-align:right;">
+0.069
+</td>
+<td style="text-align:right;">
+9.35
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+number_of_reviews
+</td>
+<td style="text-align:right;">
+-0.001
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+-3.61
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+review_scores_rating
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+3.28
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>library(car)
+
+#Check VIF
+vif(model1)</code></pre>
+<pre><code>##                      GVIF Df GVIF^(1/(2*Df))
+## prop_type_simplified 1.03  5            1.00
+## number_of_reviews    1.02  1            1.01
+## review_scores_rating 1.03  1            1.01</code></pre>
+<p>Looking at the p values and the t stat values for all the variables in this model we see they are significant, so we should include them in our model. The adjusted R square of this model is 0.16 which means 16% of the variance in <code>price_4_nights</code> can be explained by our model. This is not a sufficient value. Thus, we continue our regression analysis by adding additional variables.
+All the GVIFs are under 5, so we don’t need to worry about collinearity in our model.</p>
+<p>We thus try to keep the more significant factors and drop the unnecessary ones. To do this, we first convert the <code>neighbourhood_cleansed</code> categorical variable into dummy variables (one-hot encoding).</p>
+<pre class="r"><code>#Making dummy variables
+binary_encoded &lt;- dummy_cols(regression_data, select_columns = &quot;neighbourhood_cleansed&quot;) 
+binary_encoded &lt;- dummy_cols(binary_encoded, select_columns = &quot;cancellation_policy&quot;) 
+binary_encoded &lt;- dummy_cols(binary_encoded, select_columns = &quot;prop_type_simplified&quot;) 
+binary_encoded &lt;- dummy_cols(binary_encoded, select_columns = &quot;neighbourhood_group_cleansed&quot;) 
+binary_encoded &lt;- binary_encoded  %&gt;%
+  select(-c(neighbourhood_cleansed,neighbourhood_group_cleansed,cancellation_policy,prop_type_simplified))</code></pre>
+<p>We then select the more significant neighbourhoods to include in our model based on the summaries from before. The cleaned model is shown below.</p>
+<pre class="r"><code>#Only choose significant neighbourhoods, and add them into the mode
+final_model &lt;- lm(formula = log(price_4_nights) ~ 
+    number_of_reviews + 
+    review_scores_rating  + accommodates + 
+    neighbourhood_cleansed_Bedok + 
+    `neighbourhood_cleansed_Downtown Core` + 
+    neighbourhood_cleansed_Geylang +
+    `neighbourhood_cleansed_Marina South` +
+    neighbourhood_cleansed_Newton + 
+      neighbourhood_cleansed_Orchard + 
+    neighbourhood_cleansed_Outram + 
+      `neighbourhood_cleansed_River Valley` + 
+    neighbourhood_cleansed_Rochor + 
+    `neighbourhood_cleansed_Singapore River` + 
+      `neighbourhood_cleansed_Southern Islands` + 
+      neighbourhood_cleansed_Tuas + 
+    neighbourhood_cleansed_Woodlands + 
+      room_type*cancellation_policy_flexible + 
+    prop_type_simplified_Apartment + prop_type_simplified_Condominium + 
+    prop_type_simplified_House, 
+    data = binary_encoded)
+
+glance(final_model)%&gt;%
+  kbl()%&gt;%
+  kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+r.squared
+</th>
+<th style="text-align:right;">
+adj.r.squared
+</th>
+<th style="text-align:right;">
+sigma
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p.value
+</th>
+<th style="text-align:right;">
+df
+</th>
+<th style="text-align:right;">
+logLik
+</th>
+<th style="text-align:right;">
+AIC
+</th>
+<th style="text-align:right;">
+BIC
+</th>
+<th style="text-align:right;">
+deviance
+</th>
+<th style="text-align:right;">
+df.residual
+</th>
+<th style="text-align:right;">
+nobs
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0.523
+</td>
+<td style="text-align:right;">
+0.518
+</td>
+<td style="text-align:right;">
+0.527
+</td>
+<td style="text-align:right;">
+102
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:right;">
+-1889
+</td>
+<td style="text-align:right;">
+3834
+</td>
+<td style="text-align:right;">
+3996
+</td>
+<td style="text-align:right;">
+671
+</td>
+<td style="text-align:right;">
+2417
+</td>
+<td style="text-align:right;">
+2444
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>final_model %&gt;%
+  tidy()%&gt;%
+  kbl(escape=F) %&gt;% 
+  kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+term
+</th>
+<th style="text-align:right;">
+estimate
+</th>
+<th style="text-align:right;">
+std.error
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p.value
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+(Intercept)
+</td>
+<td style="text-align:right;">
+6.224
+</td>
+<td style="text-align:right;">
+0.091
+</td>
+<td style="text-align:right;">
+68.603
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+number_of_reviews
+</td>
+<td style="text-align:right;">
+-0.002
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+-7.381
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+review_scores_rating
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+<td style="text-align:right;">
+4.915
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+accommodates
+</td>
+<td style="text-align:right;">
+0.057
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+<td style="text-align:right;">
+13.942
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+neighbourhood_cleansed_Bedok
+</td>
+<td style="text-align:right;">
+0.141
+</td>
+<td style="text-align:right;">
+0.048
+</td>
+<td style="text-align:right;">
+2.957
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<code>neighbourhood_cleansed_Downtown Core</code>
+</td>
+<td style="text-align:right;">
+0.457
+</td>
+<td style="text-align:right;">
+0.050
+</td>
+<td style="text-align:right;">
+9.045
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+neighbourhood_cleansed_Geylang
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+<td style="text-align:right;">
+0.035
+</td>
+<td style="text-align:right;">
+0.101
+</td>
+<td style="text-align:right;">
+0.919
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<code>neighbourhood_cleansed_Marina South</code>
+</td>
+<td style="text-align:right;">
+1.532
+</td>
+<td style="text-align:right;">
+0.528
+</td>
+<td style="text-align:right;">
+2.899
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+neighbourhood_cleansed_Newton
+</td>
+<td style="text-align:right;">
+0.352
+</td>
+<td style="text-align:right;">
+0.102
+</td>
+<td style="text-align:right;">
+3.468
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+neighbourhood_cleansed_Orchard
+</td>
+<td style="text-align:right;">
+0.664
+</td>
+<td style="text-align:right;">
+0.078
+</td>
+<td style="text-align:right;">
+8.461
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+neighbourhood_cleansed_Outram
+</td>
+<td style="text-align:right;">
+0.229
+</td>
+<td style="text-align:right;">
+0.042
+</td>
+<td style="text-align:right;">
+5.429
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<code>neighbourhood_cleansed_River Valley</code>
+</td>
+<td style="text-align:right;">
+0.249
+</td>
+<td style="text-align:right;">
+0.058
+</td>
+<td style="text-align:right;">
+4.281
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+neighbourhood_cleansed_Rochor
+</td>
+<td style="text-align:right;">
+0.098
+</td>
+<td style="text-align:right;">
+0.041
+</td>
+<td style="text-align:right;">
+2.424
+</td>
+<td style="text-align:right;">
+0.015
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<code>neighbourhood_cleansed_Singapore River</code>
+</td>
+<td style="text-align:right;">
+-0.177
+</td>
+<td style="text-align:right;">
+0.068
+</td>
+<td style="text-align:right;">
+-2.582
+</td>
+<td style="text-align:right;">
+0.010
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<code>neighbourhood_cleansed_Southern Islands</code>
+</td>
+<td style="text-align:right;">
+1.287
+</td>
+<td style="text-align:right;">
+0.168
+</td>
+<td style="text-align:right;">
+7.643
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+neighbourhood_cleansed_Tuas
+</td>
+<td style="text-align:right;">
+4.035
+</td>
+<td style="text-align:right;">
+0.528
+</td>
+<td style="text-align:right;">
+7.645
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+neighbourhood_cleansed_Woodlands
+</td>
+<td style="text-align:right;">
+-0.240
+</td>
+<td style="text-align:right;">
+0.108
+</td>
+<td style="text-align:right;">
+-2.219
+</td>
+<td style="text-align:right;">
+0.027
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+room_typeHotel room
+</td>
+<td style="text-align:right;">
+-1.146
+</td>
+<td style="text-align:right;">
+0.049
+</td>
+<td style="text-align:right;">
+-23.617
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+room_typePrivate room
+</td>
+<td style="text-align:right;">
+-0.728
+</td>
+<td style="text-align:right;">
+0.029
+</td>
+<td style="text-align:right;">
+-25.091
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+room_typeShared room
+</td>
+<td style="text-align:right;">
+-1.714
+</td>
+<td style="text-align:right;">
+0.065
+</td>
+<td style="text-align:right;">
+-26.333
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+cancellation_policy_flexible
+</td>
+<td style="text-align:right;">
+-0.079
+</td>
+<td style="text-align:right;">
+0.060
+</td>
+<td style="text-align:right;">
+-1.319
+</td>
+<td style="text-align:right;">
+0.187
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+prop_type_simplified_Apartment
+</td>
+<td style="text-align:right;">
+-0.298
+</td>
+<td style="text-align:right;">
+0.033
+</td>
+<td style="text-align:right;">
+-9.127
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+prop_type_simplified_Condominium
+</td>
+<td style="text-align:right;">
+-0.256
+</td>
+<td style="text-align:right;">
+0.037
+</td>
+<td style="text-align:right;">
+-6.889
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+prop_type_simplified_House
+</td>
+<td style="text-align:right;">
+-0.336
+</td>
+<td style="text-align:right;">
+0.045
+</td>
+<td style="text-align:right;">
+-7.391
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+room_typeHotel room:cancellation_policy_flexible
+</td>
+<td style="text-align:right;">
+0.835
+</td>
+<td style="text-align:right;">
+0.145
+</td>
+<td style="text-align:right;">
+5.750
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+room_typePrivate room:cancellation_policy_flexible
+</td>
+<td style="text-align:right;">
+0.045
+</td>
+<td style="text-align:right;">
+0.070
+</td>
+<td style="text-align:right;">
+0.643
+</td>
+<td style="text-align:right;">
+0.520
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+room_typeShared room:cancellation_policy_flexible
+</td>
+<td style="text-align:right;">
+0.443
+</td>
+<td style="text-align:right;">
+0.118
+</td>
+<td style="text-align:right;">
+3.768
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+</tbody>
+</table>
+<p>Now all the P values are significant. Our adj. R square increases from 0.56 to 0.59. Combining with previous adjusted R-squared numbers, we think this is the best model for us to find now.</p>
+<p>Diagnostics of our final model.</p>
+<pre class="r"><code>#Check residual plot
+autoplot(final_model) +
+  theme_cust</code></pre>
+<p><img src="/blogs/airbnb_files/figure-html/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#Check VIF
+vif(final_model)</code></pre>
+<pre><code>##                                           GVIF Df GVIF^(1/(2*Df))
+## number_of_reviews                         1.06  1            1.03
+## review_scores_rating                      1.08  1            1.04
+## accommodates                              1.28  1            1.13
+## neighbourhood_cleansed_Bedok              1.12  1            1.06
+## `neighbourhood_cleansed_Downtown Core`    1.09  1            1.04
+## neighbourhood_cleansed_Geylang            1.21  1            1.10
+## `neighbourhood_cleansed_Marina South`     1.00  1            1.00
+## neighbourhood_cleansed_Newton             1.03  1            1.01
+## neighbourhood_cleansed_Orchard            1.08  1            1.04
+## neighbourhood_cleansed_Outram             1.26  1            1.12
+## `neighbourhood_cleansed_River Valley`     1.07  1            1.03
+## neighbourhood_cleansed_Rochor             1.18  1            1.09
+## `neighbourhood_cleansed_Singapore River`  1.18  1            1.08
+## `neighbourhood_cleansed_Southern Islands` 1.02  1            1.01
+## neighbourhood_cleansed_Tuas               1.00  1            1.00
+## neighbourhood_cleansed_Woodlands          1.04  1            1.02
+## room_type                                 4.39  3            1.28
+## cancellation_policy_flexible              4.40  1            2.10
+## prop_type_simplified_Apartment            2.24  1            1.50
+## prop_type_simplified_Condominium          2.00  1            1.41
+## prop_type_simplified_House                1.42  1            1.19
+## room_type:cancellation_policy_flexible    8.17  3            1.42</code></pre>
+<p>From the VIF table, we see that there are no values larger than 5 and the model does not appear to suffer from collinear variables. The residual plots all look promising as they follow the patters previously described, suggesting a linear relationship between the variables.</p>
+<div id="best-model-validation" class="section level4">
+<h4>Best Model validation</h4>
+<p>Now we will split the data into a test and train segments to evaluate the usefulness and accuracy of the model we built above as a means to predict AirBnB prices in Singapore.</p>
+<pre class="r"><code>#getting train and test
+
+train_index &lt;- sample(1:nrow(binary_encoded), 0.8 * nrow(binary_encoded))
+test_index &lt;- setdiff(1:nrow(binary_encoded), train_index)
+
+# Build X_train, y_train, X_test, y_test
+X_train &lt;- binary_encoded[train_index, -15]
+y_train &lt;- binary_encoded[train_index, &quot;price_4_nights&quot;]
+
+X_test &lt;- binary_encoded[test_index, -15]
+y_test &lt;- binary_encoded[test_index, &quot;price_4_nights&quot;]</code></pre>
+<p>Training model on <code>X_train</code></p>
+<pre class="r"><code>#Only choose significant neighbourhoods, and add them into the mode
+final_model_val &lt;- lm(formula = log(y_train) ~ 
+    number_of_reviews + 
+    review_scores_rating + accommodates + 
+    neighbourhood_cleansed_Bedok + 
+    `neighbourhood_cleansed_Downtown Core` + 
+    neighbourhood_cleansed_Geylang +
+    `neighbourhood_cleansed_Marina South` +
+    neighbourhood_cleansed_Newton + 
+      neighbourhood_cleansed_Orchard + 
+    neighbourhood_cleansed_Outram + 
+      `neighbourhood_cleansed_River Valley` + 
+    neighbourhood_cleansed_Rochor + 
+    `neighbourhood_cleansed_Singapore River` + 
+      `neighbourhood_cleansed_Southern Islands` + 
+      neighbourhood_cleansed_Tuas + 
+    neighbourhood_cleansed_Woodlands + 
+      room_type*cancellation_policy_flexible + 
+    prop_type_simplified_Apartment + prop_type_simplified_Condominium + 
+    prop_type_simplified_House, 
+    data = X_train)</code></pre>
+<p>Next we generate predictions from the model and calculate the Root Mean Square Error (RMSE), which is the standard deviation between our predicted points and the actual values.</p>
+<pre class="r"><code>#predict values 
+y_pred = predict(final_model_val , X_test)</code></pre>
+<pre class="r"><code>#calculate MSE
+MSE = mean((y_test - exp(y_pred))^2)
+#cacllucale the RMSE 
+RMSE = sqrt(MSE)
+RMSE</code></pre>
+<pre><code>## [1] 973</code></pre>
+<p>The RMSE is high, suggesting that our model is imperfect. However this is understandable given the pitfalls in the original data as well as the weak correlation between our dependant variables and independent variable first seen in our correlation plot.</p>
+</div>
+</div>
+</div>

@@ -12,59 +12,41 @@
     
     
     <item>
-      <title>Aliquam</title>
-      <link>/blogs/aliquam/</link>
-      <pubDate>Tue, 31 Oct 2017 22:42:51 -0500</pubDate>
-      
-      <guid>/blogs/aliquam/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Tempus</title>
-      <link>/blogs/tempus/</link>
-      <pubDate>Tue, 31 Oct 2017 22:26:13 -0500</pubDate>
-      
-      <guid>/blogs/tempus/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Magna</title>
-      <link>/blogs/magna/</link>
-      <pubDate>Tue, 31 Oct 2017 22:26:09 -0500</pubDate>
-      
-      <guid>/blogs/magna/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>AirBnB: Using Machine Learning to Predict Prices in Singapore</title>
+      <title>AirBnB: Using Machine Learning to Air BNBPredict Prices in Singapore</title>
       <link>/blogs/airbnb/</link>
       <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
       
       <guid>/blogs/airbnb/</guid>
-      <description></description>
+      <description>#importing the raw data from insideairbnb.com #used read_csv as vroom caused a column mismatchdf_raw &amp;lt;- read_csv(&amp;quot;data/listings.csv&amp;quot;)In this report I will be analysing data about Airbnb listings in Singapore with the goal of building a model to predict the total cost for two people staying four nights in Singapore. The data is from insideairbnb.com which is an unofficial source that scapes data from AirBnb.
+The DataBy taking a first look at the raw data available on the AirBnB listings in Singapore we see that the data frame is made up of 7323 observations (rows),With each row describing a particular listing, and 106 variables (columns).</description>
     </item>
     
     <item>
-      <title>IMDB: What makes a high grossing movie</title>
+      <title>GDP Growth and Climate Change</title>
+      <link>/blogs/gapm/</link>
+      <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
+      
+      <guid>/blogs/gapm/</guid>
+      <description>Intro:The Datagapminder## # A tibble: 1,704 x 6## country continent year lifeExp pop gdpPercap## &amp;lt;fct&amp;gt; &amp;lt;fct&amp;gt; &amp;lt;int&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;int&amp;gt; &amp;lt;dbl&amp;gt;## 1 Afghanistan Asia 1952 28.8 8425333 779.## 2 Afghanistan Asia 1957 30.3 9240934 821.## 3 Afghanistan Asia 1962 32.0 10267083 853.## 4 Afghanistan Asia 1967 34.0 11537966 836.## 5 Afghanistan Asia 1972 36.1 13079460 740.## 6 Afghanistan Asia 1977 38.</description>
+    </item>
+    
+    <item>
+      <title>General Social Survey (GSS)</title>
+      <link>/blogs/gss/</link>
+      <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
+      
+      <guid>/blogs/gss/</guid>
+      <description>The DataThe General Social Survey (GSS) gathers data on American society in order to monitor and explain trends in attitudes, behaviours, and attributes. Many trends have been tracked for decades, so one can see the evolution of attitudes, etc in American Society.I will analyze data from the 2016 GSS sample data, using it to estimate values of population parameters of interest about US adults. The GSS sample data file has 2867 observations of 935 variables, but I will only focus on a few of these variables.</description>
+    </item>
+    
+    <item>
+      <title>IMDB: What makes a high grossing movie?</title>
       <link>/blogs/imdb_rat/</link>
       <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
       
       <guid>/blogs/imdb_rat/</guid>
-      <description>IMDBIn this post I will be exploring the IMDB dataset to see what
-The DataHere is the dataset we will be working with. We can use glimpse to get a brief overview of the data.
-#contents of the movies dataset glimpse(movies)## Rows: 2,961## Columns: 11## $ title &amp;lt;chr&amp;gt; &amp;quot;Avatar&amp;quot;, &amp;quot;Titanic&amp;quot;, &amp;quot;Jurassic World&amp;quot;, &amp;quot;The Ave...## $ genre &amp;lt;chr&amp;gt; &amp;quot;Action&amp;quot;, &amp;quot;Drama&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;.</description>
-    </item>
-    
-    <item>
-      <title>Ipsum</title>
-      <link>/blogs/ipsum/</link>
-      <pubDate>Tue, 31 Oct 2017 21:28:43 -0500</pubDate>
-      
-      <guid>/blogs/ipsum/</guid>
-      <description>Nullam et orci eu lorem consequat tincidunt vivamus et sagittis magna sed nunc rhoncus condimentum sem. In efficitur ligula tate urna. Maecenas massa sed magna lacinia magna pellentesque lorem ipsum dolor. Nullam et orci eu lorem consequat tincidunt. Vivamus et sagittis tempus.</description>
+      <description>The DataHere is the dataset we will be working with. We can use glimpse to get a brief overview of the data.
+#contents of the movies dataset glimpse(movies)## Rows: 2,961## Columns: 11## $ title &amp;lt;chr&amp;gt; &amp;quot;Avatar&amp;quot;, &amp;quot;Titanic&amp;quot;, &amp;quot;Jurassic World&amp;quot;, &amp;quot;The Ave...## $ genre &amp;lt;chr&amp;gt; &amp;quot;Action&amp;quot;, &amp;quot;Drama&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;, &amp;quot;Action&amp;quot;...## $ director &amp;lt;chr&amp;gt; &amp;quot;James Cameron&amp;quot;, &amp;quot;James Cameron&amp;quot;, &amp;quot;Colin Trevor...## $ year &amp;lt;dbl&amp;gt; 2009, 1997, 2015, 2012, 2008, 1999, 1977, 2015,.</description>
     </item>
     
   </channel>

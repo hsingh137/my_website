@@ -1,0 +1,256 @@
+---
+title: "GDP Growth and Climate Change"
+date: '2017-10-31T21:28:43-05:00'
+description: ''
+draft: no
+image: logo.png
+keywords: ''
+slug: gapm
+categories:
+- ''
+- ''
+---
+
+```{r, setup, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=11, 
+  fig.height=6,
+  fig.align = "center" 
+)
+```
+
+
+```{r, loading_lib, echo = FALSE}
+
+library(tidyverse)
+library(gapminder)
+library(GGally)
+library(skimr)
+library(blogdown)
+library(scales)
+library("ggpubr")
+library(moderndive)
+library(kableExtra)
+options(scipen = 999)
+```
+### Intro: 
+
+
+
+### The Data 
+
+```{r}
+gapminder
+```
+
+I am going to be using two datasets for our analysis: the `gapminder` and the `weather` dataset. The `gapminder` dataset is can be imported as a library with r and provides details of a country's life expectancy, GDP etc. But the columns I am interested in are:
+<ol>
+1.`Country` : name of the country  
+2.`gdpPercap` : gdp per captia of a given country
+3.`year` : Year of the data
+4.`pop` : Population of the country
+</ol>
+
+```{r,}
+
+weather <- read_csv("https://data.giss.nasa.gov/gistemp/tabledata_v3/NH.Ts+dSST.csv", 
+           skip = 1, 
+           na = "***")
+
+glimpse(weather)
+```
+The above weather dataset we imported has the monthly temperature deviatons from the expected temperature betweeen the years 1880 and 2019. 
+
+### Data Cleaning and Wrangling
+
+
+```{r}
+#skim(weather)
+#skim(gapminder)
+```
+A quick skim of the datasets reveals no missing datapoints in either.
+For this analysis I will need to combine the two datasets. I will use the `year` column  to do so and then afterwards we can check for any missing values that form as a reuslt of the merging. 
+
+
+
+```{r, defining_theme , echo = FALSE}
+theme_cust <-  theme(
+        plot.background = element_rect(fill = '#2B304A', colour ='#2B304A' ),
+        axis.title = element_text(color = '#C7C8CF' , face = 'bold' ), 
+        axis.text =  element_text(color = '#C7C8CF' , face = 'bold') ,
+        panel.grid = element_blank() ,
+        panel.border = element_blank(),
+        plot.title = element_text(color = '#C7C8CF' , face = 'bold'),
+        plot.subtitle = element_text(color = '#C7C8CF' , face = 'bold'),
+        panel.background = element_rect(fill = '#2B304A', color = '#2B304A') ,
+        axis.ticks = element_line(color = '#C7C8CF'),
+        legend.background = element_rect(fill = '#2B304A'),
+        legend.key = element_rect(fill= '#2B304A'),
+        legend.position = "bottom",
+        legend.text =  element_text(color = '#C7C8CF' , face = 'bold'),
+
+        legend.title =  element_text(color = '#C7C8CF' , face = 'bold'),
+        axis.line = element_line(color = '#C7C8CF' )
+        
+        )
+```
+
+
+```{r}
+#grouping the weather data by year and calclulating averages 
+
+weather <- weather %>%
+  pivot_longer(cols = 2:13 , names_to = 'Month' , values_to = 'Delta') %>%
+  group_by(Year) %>%
+  summarise(mean_delta = mean(Delta) , median_delta = median(Delta)) %>%
+  rename('year' = 'Year')
+
+
+weather %>% 
+  pivot_longer(cols = c(mean_delta , median_delta) , names_to = 'type' , values_to = 'avg') %>%
+  filter(is.na(avg) == FALSE) %>% 
+  ggplot() +
+  geom_point(aes(x = year, y = avg, color = type)) + 
+  theme_cust +
+  scale_x_continuous(expand = c(0,0))+
+  labs(y= 'Temeperature Delta' , 
+       color = 'Avearge Type')  
+
+```
+I grouped the weather data by year and found the average delta for each year. We can clearly see that the temperatures have been **increasing** from the start of last century. Also quick note on the data, the expected temperatures are actually calculated from the temperatures around 1950-1980, this is why we see a the curve flattening around that time.
+
+Now the two datasets are ready to join. And I will also add a `tot_gdp` column which will simply be `gdpPercap` times the `pop`. 
+
+```{r}
+# joining the two datasets
+df_joined <- gapminder %>%
+  left_join( weather  , by = 'year') %>%
+##addinng  a total GDP colum 
+  mutate(tot_gdp = gdpPercap*pop)
+
+df_joined
+
+```
+
+
+
+### Data Visualization and Exploration 
+
+Now that we have the data ready and joined we can make some cool visualizations. First thing I am curious about is, how has the world economy performed and also how has the economic table has changed in the last half a century. 
+
+```{r, growth overveiw}
+
+#finding the gdp per cap for 1952 and 2007
+df_p <- df_joined %>% 
+  group_by(continent, country , tot_gdp)%>%
+  filter(year == 1952 | year == 2007) %>%
+  pivot_wider(id_cols = c(1, 2, ) , names_from = year, values_from = gdpPercap)
+
+
+#adding an extra column with the total size of the gdp
+df_p$tot_2007 <-  filter(df_joined , year == 2007)$tot_gdp
+
+
+df_p %>%
+  pivot_longer(cols = c(`1952`,`2007`) , names_to = 'Year' , values_to = "gdppercap") %>%
+  ggplot() +
+  geom_density(aes(gdppercap , fill = Year))+
+  scale_y_continuous(expand= c(0,0))+ 
+  scale_x_log10(expand= c(0,0))+ 
+  labs(x = 'Gdp Per Captia' , y = 'Density')+
+  theme_cust 
+
+```
+
+Comparing distributions between the gpd per cap in 1952 vs gdp per cap in 2007, You can clearly see that there has been a significant changes in GDP per captia meaning that a lot of economies have grown and grown significantly. Now lets look at how the economy table has changed through out the years.
+
+
+```{r}
+#parrallel category chart 
+df_p1 <- df_joined %>% 
+  group_by(continent, country , tot_gdp)%>%
+  filter(year == 1952 | year == 1972 |year == 1992| year == 2007) %>%
+  pivot_wider(id_cols = c(1, 2,  ) , names_from = year, values_from = tot_gdp)
+
+
+
+# parrallel category plot 
+df_p1%>%
+  arrange(desc(`2007`)) %>%
+  head(n = 10) %>%
+  ggparcoord(columns = 3:6, groupColumn = 1,
+             showPoints = TRUE,
+              alphaLines = 0.3,
+             scale="globalminmax",) +
+  
+  theme_cust + 
+  labs( y = 'Total GDP (USD)', 
+        x= 'Year' ) +
+   scale_y_log10(labels = unit_format(unit = "B", scale = 1e-9))
+
+
+```
+Some economies have grown faster than others and at different times. We see the big asian economies like china and india have recently expanded while the developed economies expanded a few decades earlier. Also an interesting thing to note is how USA has lost it significant size advantage in the last couple of decades. 
+
+
+**From the above graphs** two things are clear, economies around the world have grown and the climate has gotten hotter. 
+
+
+### Relationship Analysis
+  
+  
+Now we want to analyse the relationhship between the Economic Growth and Climate Change. We begin by looking at the world economic growth and temperature deviation by year.
+
+```{r}
+
+corr <- df_joined %>% 
+  group_by(year) %>%
+  summarize(economy = median(gdpPercap) , temp_delta = median(median_delta)) 
+
+
+stat_cor <- cor(x = corr$economy, y = corr$temp_delta , method ='pearson' ,  use = "complete.obs")
+
+corr %>%
+  ggplot()+
+  geom_point(aes(x = economy, y = temp_delta ) , color = '#EA8272') +
+  geom_smooth(aes(x = economy, y = temp_delta ),method = 'lm' , color = '#C7C8CF' , se = FALSE) + 
+  geom_text(aes(5500, -0.2) , label = paste0('Correlation: ',round(stat_cor, 2)) , color = '#C7C8CF' )+
+  scale_x_log10(expand = c(0,0))+
+  theme_cust + 
+  labs(x = 'Median GDP Per Captia' , 
+       y = 'Temperature Deviation' , 
+       title = 'As economes grow so does the temperature' ,
+       subtitle =  'Median GDP per captia  vs Median Temperature Deviation' )
+
+
+```
+
+We can see from the correlation number that there is an clear positive relationship between the median gdp per captia and the temperature deviation. Providing significant evidence that the world economy has grown at the expense of the climate getting hotter. If I also createa a linear model between the two variables we can really understand the relationship. 
+
+```{r}
+
+# Fit regression model:
+score_model <- lm( temp_delta ~ log10(economy), data = corr)
+# Get regression table:
+get_regression_table(score_model) %>%
+  kbl(caption = "Linear Model of gdp per captia and temperature deviation") %>% 
+  kable_styling()
+
+```
+Clearly gdp per captia has a significant impact on temperature deviation given from the t statistic of 2.65. The slope estimate of 1.05 also tells you that there is a positive relationship between the two variables i.e. as gdp per captia increases so the do the temperature deviations. 
+
+### Conclusion
+In this blog I conducted a very simple analysis between the increasing temperatures around the world and the economic growth we have experienced in the past century. Although the analysis could have been done in much more depth if the data had been their. One thing can be sure :
+> The way we have been growing has been signifcantly leading to increasing temperatures. 
+
+This will need to change and we will need to change the way our future econmic growth is fueled or the upcoming climate change crisis will not be avoidable. 
+
+

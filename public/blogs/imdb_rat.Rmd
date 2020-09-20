@@ -1,6 +1,5 @@
-
 ---
-title: 'IMDB: What makes a high grossing movie'
+title: 'IMDB: What makes a high grossing movie?'
 date: '2017-10-31T21:28:43-05:00'
 description: ''
 draft: no
@@ -50,10 +49,6 @@ library(kableExtra)
 options(scipen = 999)
 ```
 
-
-
-### IMDB 
-In this post I will be exploring the IMDB dataset to see what 
 
 
 
@@ -362,6 +357,6 @@ movies %>%
     kable_styling()
 
 ```
-From the correlation matrix above we see  that roi is, sadly not, significantly correlated to any of the variables we have in our database so therefore we cannot explain the roi that some of .
+From the correlation matrix above we see  that roi is, sadly not, significantly correlated to any of the variables we have in our database so therefore we cannot explain the roi that some of the amazing low budget movies have. 
 
 

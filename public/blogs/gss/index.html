@@ -1,0 +1,521 @@
+<!DOCTYPE HTML>
+<html>
+
+    <head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<meta name="description" content="A site detailing my portfolio of Work.">
+	<meta name="author" content="Himanshu Singh_aesefasiljdfbaweojg">
+	<meta name="generator" content="Hugo 0.74.3" />
+	<title>General Social Survey (GSS) &middot; Portfolio website for Himanshu Singh</title>
+	<!-- Stylesheets -->
+	
+	<link rel="stylesheet" href="/css/main.css"/>
+	
+	
+
+	
+
+	<!-- Custom Fonts -->
+	<link href="/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+	
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+	
+
+	<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+	<!--[if lt IE 9]>
+	<script src="js/ie/html5shiv.js"></script>
+	<script src="js/ie/html5shiv.jsrespond.min.js"></script>
+	<![endif]-->
+</head>
+
+    <body>
+
+    <!-- Wrapper -->
+        <div id="wrapper">
+
+            <!-- Header -->
+    <header id="header" class="alt">
+        <a href="/" class="logo"><strong>Himanshu Singh</strong> <span></span></a>
+        <nav>
+            <a href="#menu">Menu</a>
+        </nav>
+    </header>
+
+<!-- Menu -->
+    <nav id="menu">
+        <ul class="links">
+            
+                <li><a href="/">Home</a></li>
+            
+                <li><a href="/blogs">projects</a></li>
+            
+
+        </ul>
+        <ul class="actions vertical">
+            
+                <li><a href="/blogs/gapm" class="button special fit">Get Started</a></li>
+            
+            
+        </ul>
+    </nav>
+
+        <!-- Main -->
+            <div id="main" class="alt">
+
+                
+                    <section id="one">
+                        <div class="inner">
+                            <header class="major">
+                                <h1>General Social Survey (GSS)</h1>
+                            </header>
+                            
+                                <span class="image main"><img src="/img/blogs/social.jpg" alt="" /></span>
+                            
+                            
+<script src="/rmarkdown-libs/kePrint/kePrint.js"></script>
+<link href="/rmarkdown-libs/lightable/lightable.css" rel="stylesheet" />
+
+
+<div id="the-data" class="section level2">
+<h2>The Data</h2>
+<p>The <a href="http://www.gss.norc.org/">General Social Survey (GSS)</a> gathers data on American society in order to monitor and explain trends in attitudes, behaviours, and attributes. Many trends have been tracked for decades, so one can see the evolution of attitudes, etc in American Society.
+I will analyze data from the <strong>2016 GSS sample data</strong>, using it to estimate values of <em>population parameters</em> of interest about US adults. The GSS sample data file has 2867 observations of 935 variables, but I will only focus on a few of these variables.</p>
+<pre class="r"><code>gss &lt;- read_csv(&quot;data/smallgss2016.csv&quot;, 
+                na = c(&quot;&quot;, &quot;Don&#39;t know&quot;,
+                       &quot;No answer&quot;, &quot;Not applicable&quot;))</code></pre>
+<p>The responses including “No Answer”, “Don’t Know”, “Not applicable”, “Refused to Answer” were excluded from the analysis.</p>
+<p>I will be creating 95% confidence intervals for population parameters. The variables we have are the following:</p>
+<ul>
+<li>hours and minutes spent on email weekly. The responses to these questions are recorded in the <code>emailhr</code> and <code>emailmin</code> variables. For example, if the response is 2.50 hours, this would be recorded as emailhr = 2 and emailmin = 30.</li>
+<li><code>snapchat</code>, <code>instagrm</code>, <code>twitter</code>: whether respondents used these social media in 2016</li>
+<li><code>sex</code>: Female - Male</li>
+<li><code>degree</code>: highest education level attained</li>
+</ul>
+</div>
+<div id="instagram-and-snapchat-users-by-gender" class="section level2">
+<h2>Instagram and Snapchat users by Gender</h2>
+<p>Below we estimate the <em>population</em> proportion of Snapchat or Instagram users in 2016.</p>
+<p>The formula for the population proprtion is as follows:</p>
+<p><em>Proportion = (Snapchat or Instagram users / Total Population)x100</em></p>
+<p>Firstly , I will the data and removing the NA values to calculate the total Snapchat and Instagram users in 2016 (ie. Total Population). We found the population to total to 1372 people.</p>
+<pre class="r"><code># Proportion = (Snapchat or Instagram users / Population)*100 - To identify the real value for &quot;Population&quot; in the equation, we need to filter out people with NA for both of these social platforms
+
+gss &lt;- gss %&gt;% 
+  #Counting people that should be excluded from the population 
+  mutate(no_insta_snap = ifelse(instagrm == &quot;NA&quot; | snapchat == &quot;NA&quot;, &quot;Remove&quot;, &quot;Keep&quot;))
+
+#Calculating the number of people who answerd yes or no
+filtered_tot_pop &lt;- gss %&gt;%
+  count(no_insta_snap == &quot;Keep&quot;)
+filtered_tot_pop &lt;- filtered_tot_pop[2,2]</code></pre>
+<p>With a known population of 1372 size I will proceed to calculate the proportion of users amongst both females and males and also calculate confidence intervals for both.</p>
+<pre class="r"><code>#Creating a new column based on the whether people used snapchat or instagram 
+#column named snap_insta 
+
+gss &lt;- gss %&gt;% 
+  mutate(snap_insta = ifelse(instagrm == &quot;Yes&quot; | snapchat == &quot;Yes&quot;, &quot;Yes&quot;, &quot;No&quot;))
+
+
+#calculating the proportion of male and female snap and instagram users 
+gender_split &lt;- gss %&gt;%
+  filter(no_insta_snap == &quot;Keep&quot;) %&gt;%
+  group_by(sex) %&gt;%
+  summarize(total = count(sex), users = count(snap_insta == &quot;Yes&quot;), proportio = round(users/total*100,2))
+
+#calculating standard error
+# and confidence level in new columns 
+library(kableExtra)
+gender_split &lt;- gender_split %&gt;%
+  mutate(std_error = round(sqrt(proportio*(100-proportio)/total),2)) %&gt;%
+  # 95% confidence interval calculation (z score of 2)
+  mutate(upper_level = round(proportio + 2*std_error,2) ,
+         lower_level = round(proportio - 2*std_error ,2))
+
+gender_split%&gt;%
+  rename(&#39;Gender&#39; = &#39;sex&#39; ,  &#39;Proportion&#39;  = &#39;proportio&#39;,
+         &#39;Lower Level&#39;  = &#39;lower_level&#39;,&#39;Upper Level&#39; = &#39;upper_level&#39; ,
+         &#39;Standard Error&#39; = &#39;std_error&#39; ,  &#39;Total&#39; = &#39;total&#39;,  &#39;Number of Users&#39; = &#39;users&#39; )%&gt;%
+  kbl(caption = &quot;More women use social media than men&quot;)%&gt;%
+  kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+(#tab:genders_sn_ig)More women use social media than men
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Gender
+</th>
+<th style="text-align:right;">
+Total
+</th>
+<th style="text-align:right;">
+Number of Users
+</th>
+<th style="text-align:right;">
+Proportion
+</th>
+<th style="text-align:right;">
+Standard Error
+</th>
+<th style="text-align:right;">
+Upper Level
+</th>
+<th style="text-align:right;">
+Lower Level
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Female
+</td>
+<td style="text-align:right;">
+769
+</td>
+<td style="text-align:right;">
+322
+</td>
+<td style="text-align:right;">
+41.9
+</td>
+<td style="text-align:right;">
+1.78
+</td>
+<td style="text-align:right;">
+45.4
+</td>
+<td style="text-align:right;">
+38.3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Male
+</td>
+<td style="text-align:right;">
+603
+</td>
+<td style="text-align:right;">
+192
+</td>
+<td style="text-align:right;">
+31.8
+</td>
+<td style="text-align:right;">
+1.90
+</td>
+<td style="text-align:right;">
+35.6
+</td>
+<td style="text-align:right;">
+28.0
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>  gender_split %&gt;%
+  ggplot(aes(x = sex, y = proportio)) + 
+  #plottting error bars 
+  geom_errorbar(aes(ymax  = `upper_level`,
+                   ymin  = `lower_level`,
+                   width = 0.1,
+                   color = sex,
+                   ),size = 1) +
+  geom_point(size = 5, aes(color = sex)) + 
+  theme_cust + 
+  theme(legend.position = &#39;none&#39;) + 
+  labs(x = &#39;Gender&#39; ,
+       y = &#39;Proportion using snapchat or instagram\n&#39;,
+       title = &#39;Females more likely to use snapchat and instagram&#39;  )</code></pre>
+<p><img src="/blogs/gss_files/figure-html/unnamed-chunk-1-1.png" width="648" style="display: block; margin: auto;" />
+From the confidence intervals we see that females are more likely to use snapchat and instagram than men.</p>
+</div>
+<div id="do-university-graduates-use-twitter" class="section level2">
+<h2>Do University Graduates use Twitter?</h2>
+<p>We first filter the data only for the people that have graduated from University (undergraduate/masters) and calculate the proportion of these that use twitter or not, as well as a 95% confidence interval for our results.</p>
+<pre class="r"><code>##converting degree to factor 
+degree &lt;- gss %&gt;%
+  select(degree, twitter) %&gt;%
+  #new dataframe with degree column as factor 
+  mutate_at(vars(degree), funs(as.factor)) %&gt;%
+  #create bachelor_graduate column 
+  mutate(bachelor_graduate = ifelse(
+    degree == &#39;Bachelor&#39; | degree == &#39;Graduate&#39;, &#39;Yes&#39; , 
+    ifelse(degree == &#39;NA&#39; , &#39;NA&#39; , &#39;No&#39;)
+  ))
+
+
+sum_deg &lt;- degree %&gt;%
+  #keep only bachelor_graduate == Yes
+  filter(bachelor_graduate == &#39;Yes&#39;)%&gt;%
+  #create count columns with total graduate and twitter users
+  group_by(twitter) %&gt;%
+  filter(twitter != &#39;NA&#39;)%&gt;%
+  tally() %&gt;%
+  mutate(prop = round(n/sum(n)*100,2)) %&gt;%
+  mutate(std_error = round(sqrt(prop*(100-prop)/sum(n)) ,4)) %&gt;%
+  mutate(lower_level = prop - 2*std_error , 
+         upper_level = prop + 2*std_error )
+
+
+sum_deg %&gt;%
+  rename( &#39;Proportion&#39;  = &#39;prop&#39;, &#39;Lower Level&#39;  = &#39;lower_level&#39;,&#39;Upper Level&#39; = &#39;upper_level&#39;,&#39;Standard Error&#39; = &#39;std_error&#39;, &#39;Most University graduates do not use Twitter&#39; = &#39;twitter&#39;, &#39;Count&#39; = &#39;n&#39;) %&gt;%
+  kbl() %&gt;%
+  kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Most University graduates do not use Twitter
+</th>
+<th style="text-align:right;">
+Count
+</th>
+<th style="text-align:right;">
+Proportion
+</th>
+<th style="text-align:right;">
+Standard Error
+</th>
+<th style="text-align:right;">
+Lower Level
+</th>
+<th style="text-align:right;">
+Upper Level
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+No
+</td>
+<td style="text-align:right;">
+375
+</td>
+<td style="text-align:right;">
+76.7
+</td>
+<td style="text-align:right;">
+1.91
+</td>
+<td style="text-align:right;">
+72.9
+</td>
+<td style="text-align:right;">
+80.5
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Yes
+</td>
+<td style="text-align:right;">
+114
+</td>
+<td style="text-align:right;">
+23.3
+</td>
+<td style="text-align:right;">
+1.91
+</td>
+<td style="text-align:right;">
+19.5
+</td>
+<td style="text-align:right;">
+27.1
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>  sum_deg %&gt;%
+  ggplot(aes(x = twitter, y = prop)) + 
+  #plottting error bars 
+  geom_errorbar(aes(ymax  = `upper_level`,
+                   ymin  = `lower_level`,
+                   width = 0.1,
+                   color = twitter,
+                   ),size = 1) +
+  geom_point(size = 5, aes(color = twitter)) + 
+  theme_cust + 
+  theme(legend.position = &#39;none&#39;) + 
+  labs(x = &#39;Use Twitter&#39; ,
+       y = &#39;Proportion [%]&#39;,
+       title = &#39;Most University graduates do not use Twitter&#39;  )</code></pre>
+<p><img src="/blogs/gss_files/figure-html/unnamed-chunk-2-1.png" width="648" style="display: block; margin: auto;" /></p>
+<p>As seen from above we found that these two Confidence Intervals do not overlap and it can be statitically stated that graduates do not use twitter;.</p>
+</div>
+<div id="how-much-time-do-people-spend-on-their-email-per-week" class="section level2">
+<h2>How much time do people spend on their Email per week?</h2>
+<pre class="r"><code>#create new  variable email
+email &lt;- gss %&gt;%
+  #select first 2 columns 
+  select(1:2)%&gt;%
+  
+  #remove na
+  filter(emailhr != &#39;NA&#39;) %&gt;%
+  
+  #convert the variable to numeric
+  mutate_at(vars(emailhr,emailmin), funs(as.numeric)) %&gt;%
+  
+  #create new total email time 
+  mutate(email_tot = emailhr*60 + emailmin)
+
+#summary statistic
+ss_email &lt;- email %&gt;%
+  summarize(mean = mean(email_tot), median = median(email_tot)) %&gt;%
+  kbl(caption = &#39;Mean and Median weekly email usage&#39;) %&gt;%
+    kable_styling()
+  
+ss_email</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:email">Table 1: </span>Mean and Median weekly email usage
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+mean
+</th>
+<th style="text-align:right;">
+median
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+417
+</td>
+<td style="text-align:right;">
+120
+</td>
+</tr>
+</tbody>
+</table>
+<p>After filtering the population only to those people that use their email we visualize the distribution of the minutes spent emailing per week. We note both the mean and the median but would like to highlight that the median is a better measure to capture the typical amount of time Americans spend on email weekly because, as shown from the desity below, the data includes outliers (eg. 600 minutes per week).</p>
+<pre class="r"><code>#plotting desity for email_usg
+email %&gt;%
+  ggplot(aes(x = email_tot) ,  ) +
+  geom_density(fill = &#39;#F9F871&#39; , color = &#39;#F9F871&#39;)+
+  #plotting the mean and median with a vertical line on the plot
+  geom_vline(xintercept = c(120),linetype=&quot;dotted&quot;, color=&quot;blue&quot;, size=1) +
+  labs(title = &#39;Americans spend about 120 minutes per week on their Email&#39; ,
+    subtitle = &#39;Minutes spent on Email per week&#39; ,
+    y = &#39;Density&#39;, 
+    x = &#39;Minutes Spent on Email&#39;, caption = &quot;Source: General Social Survey&quot;) + 
+  scale_y_continuous(expand = c(0,0))+ 
+  scale_x_log10(expand = c(0,0))+ 
+  theme_cust </code></pre>
+<p><img src="/blogs/gss_files/figure-html/unnamed-chunk-3-1.png" width="648" style="display: block; margin: auto;" /></p>
+<p>Finally, I calculate a 95% bootstrap confidence interval for the mean amount of time Americans spend on email weekly.</p>
+<pre class="r"><code>boot_email &lt;- email %&gt;%
+  
+  #specify variable
+  specify(response = email_tot) %&gt;%
+  
+  #Generate samples 
+  generate(reps = 100 , type = &#39;bootstrap&#39;) %&gt;%
+  
+  #find the mean 
+  calculate(stat = &#39;mean&#39;)
+
+  #find the 95% confidence interval 
+    
+email_ci &lt;- boot_email %&gt;%
+    get_confidence_interval(level = 0.95, type = &quot;percentile&quot;)
+    
+  email_ci%&gt;%
+    round(. ,2) %&gt;%
+    kbl(caption = &#39;The 95% bootstrap confidence level&#39;)%&gt;%
+    kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-4">Table 2: </span>The 95% bootstrap confidence level
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+lower_ci
+</th>
+<th style="text-align:right;">
+upper_ci
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+386
+</td>
+<td style="text-align:right;">
+446
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+                        </div>
+                    </section>
+            <!-- Disqus Inject -->
+                
+            </div>
+            
+        <!-- Footer -->
+            
+                <!-- Footer -->
+    <footer id="footer">
+        <div class="inner">
+            <ul class="icons">
+                
+                    <li><a href="https://www.twitter.com" class="icon alt fa-twitter" target="_blank"><span class="label">Twitter</span></a></li>
+                
+                    <li><a href="https://www.facebook.com" class="icon alt fa-facebook" target="_blank"><span class="label">Facebook</span></a></li>
+                
+                    <li><a href="https://www.instagram.com" class="icon alt fa-instagram" target="_blank"><span class="label">Instagram</span></a></li>
+                
+                    <li><a href="https://www.github.com" class="icon alt fa-github" target="_blank"><span class="label">GitHub</span></a></li>
+                
+                    <li><a href="https://www.linkedin.com" class="icon alt fa-linkedin" target="_blank"><span class="label">LinkedIn</span></a></li>
+                
+            </ul>
+            <ul class="copyright">
+                <li>&copy; Company Name</li>
+                
+                <li>Design:  <a href="https://www.html5up.net">HTML5 UP</a></li>
+                
+            </ul>
+        </div>
+    </footer>
+
+            
+        </div>
+
+    <!-- Scripts -->
+        <!-- Scripts -->
+    <!-- jQuery -->
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery.scrolly.min.js"></script>
+    <script src="/js/jquery.scrollex.min.js"></script>
+    <script src="/js/skel.min.js"></script>
+    <script src="/js/util.js"></script>
+
+    
+
+    <!-- Main JS -->
+    <script src="/js/main.js"></script>
+
+    
+
+    
+
+    </body>
+</html>
